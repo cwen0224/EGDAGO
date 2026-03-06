@@ -4,6 +4,7 @@ function doPost(e) {
   try {
     const payload = JSON.parse(e.postData.contents || "{}");
     const fields = payload.fields || {};
+    const storedFields = sanitizeStoredFields_(fields);
     const files = payload.files || [];
     const folder = DriveApp.getFolderById(getRequiredSetting_("TARGET_DRIVE_FOLDER_ID"));
     const sheet = getOrCreateSheet_();
@@ -31,7 +32,7 @@ function doPost(e) {
       fields.teamName || "",
       fields.contactName || "",
       fields.contactEmail || "",
-      JSON.stringify(fields),
+      JSON.stringify(storedFields),
       JSON.stringify(storedFiles)
     ]);
 
@@ -57,6 +58,21 @@ function doGet(e) {
     return ContentService
       .createTextOutput(JSON.stringify({ ok: true, result: result }))
       .setMimeType(ContentService.MimeType.JSON);
+  }
+
+  if (action === "listSubmissions") {
+    try {
+      const idToken = e && e.parameter ? e.parameter.idToken || "" : "";
+      const email = getVerifiedGoogleEmail_(idToken);
+      const submissions = listSubmissionsForEmail_(email);
+      return ContentService
+        .createTextOutput(JSON.stringify({ ok: true, email: email, submissions: submissions }))
+        .setMimeType(ContentService.MimeType.JSON);
+    } catch (error) {
+      return ContentService
+        .createTextOutput(JSON.stringify({ ok: false, error: error.message }))
+        .setMimeType(ContentService.MimeType.JSON);
+    }
   }
 
   return ContentService
@@ -104,6 +120,44 @@ function getOrCreateSheet_() {
     "filesJson"
   ]);
   return sheet;
+}
+
+function listSubmissionsForEmail_(email) {
+  const spreadsheet = SpreadsheetApp.openById(getRequiredSetting_("TARGET_SPREADSHEET_ID"));
+  const sheet = spreadsheet.getSheetByName(LOG_SHEET_NAME);
+  if (!sheet) {
+    return [];
+  }
+
+  const rows = sheet.getDataRange().getValues();
+  if (rows.length <= 1) {
+    return [];
+  }
+
+  const normalizedEmail = String(email || "").trim().toLowerCase();
+  return rows
+    .slice(1)
+    .map((row) => {
+      const fields = parseJsonSafely_(row[7], {});
+      const files = parseJsonSafely_(row[8], []);
+      return {
+        createdAt: row[0],
+        submissionId: row[1],
+        submissionStage: row[2],
+        category: row[3],
+        teamName: row[4],
+        contactName: row[5],
+        contactEmail: row[6],
+        fields: sanitizeStoredFields_(fields),
+        files: files
+      };
+    })
+    .filter((entry) => {
+      const googleEmail = String(entry.fields.googleAccountEmail || "").trim().toLowerCase();
+      const contactEmail = String(entry.contactEmail || "").trim().toLowerCase();
+      return googleEmail === normalizedEmail || contactEmail === normalizedEmail;
+    })
+    .reverse();
 }
 
 function maybeCreateAsanaTask_(fields, storedFiles, submissionId) {
@@ -187,6 +241,42 @@ function buildAsanaNotes_(fields, storedFiles, submissionId) {
     "files:",
     fileLines
   ].join("\n");
+}
+
+function getVerifiedGoogleEmail_(idToken) {
+  if (!idToken) {
+    throw new Error("Missing Google ID token.");
+  }
+
+  const response = UrlFetchApp.fetch(`https://oauth2.googleapis.com/tokeninfo?id_token=${encodeURIComponent(idToken)}`, {
+    method: "get",
+    muteHttpExceptions: true
+  });
+
+  if (response.getResponseCode() < 200 || response.getResponseCode() >= 300) {
+    throw new Error("Google sign-in verification failed.");
+  }
+
+  const payload = parseJsonSafely_(response.getContentText(), {});
+  if (payload.email_verified !== "true" || !payload.email) {
+    throw new Error("Google sign-in verification failed.");
+  }
+
+  return payload.email;
+}
+
+function sanitizeStoredFields_(fields) {
+  const clone = JSON.parse(JSON.stringify(fields || {}));
+  delete clone.googleIdToken;
+  return clone;
+}
+
+function parseJsonSafely_(value, fallback) {
+  try {
+    return value ? JSON.parse(value) : fallback;
+  } catch (error) {
+    return fallback;
+  }
 }
 
 function getRequiredSetting_(key) {

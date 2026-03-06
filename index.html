@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>EGDA 教育遊戲設計大賞報名</title>
+  <title>EGDA2026報名系統</title>
   <meta
     name="description"
     content="將 EGDA 報名、作品資訊填寫與附件上傳整合成單一頁面，方便參賽者一次完成送件。"
@@ -24,6 +24,7 @@
         <div class="google-login-button" id="google-login-button"></div>
         <button class="google-logout hidden" id="google-logout" type="button">登出 Google</button>
       </div>
+      <span class="version-badge" id="version-badge">v2026.03.06</span>
       <button
         class="language-toggle"
         id="language-toggle"
@@ -45,7 +46,7 @@
     <section class="hero">
       <div class="hero-copy">
         <p class="eyebrow">EGDA 2026</p>
-        <h1>把報名、繳件、附件上傳整合成一次完成</h1>
+        <h1>EGDA2026報名系統</h1>
         <p class="hero-text">
           這個頁面設計給教育遊戲設計大賞使用，將原本拆散的 Google 表單與檔案提交流程，
           收斂成一個適合 GitHub Pages 發佈的報名入口。
@@ -104,6 +105,18 @@
       <div class="section-heading">
         <p class="eyebrow">報名表單</p>
         <h2>依組別切換對應規則書欄位的一頁式送件</h2>
+      </div>
+
+      <div class="history-panel" id="history-panel">
+        <div class="history-panel-header">
+          <div>
+            <p class="history-label" id="history-label">我的送件紀錄</p>
+            <h3 class="history-title" id="history-title">登入後查看自己先前填寫的表單</h3>
+          </div>
+          <button class="button button-secondary" type="button" id="load-history">載入我的紀錄</button>
+        </div>
+        <p class="hint" id="history-hint">請先使用 Google / Gmail 登入，再載入你先前送出的資料。</p>
+        <div class="history-list" id="history-list"></div>
       </div>
 
       <p class="hint">

@@ -12,6 +12,12 @@ const googleLoginButton = document.querySelector("#google-login-button");
 const googleLogoutButton = document.querySelector("#google-logout");
 const googleAccountEmailInput = document.querySelector("#google-account-email");
 const googleIdTokenInput = document.querySelector("#google-id-token");
+const versionBadge = document.querySelector("#version-badge");
+const historyLabel = document.querySelector("#history-label");
+const historyTitle = document.querySelector("#history-title");
+const historyHint = document.querySelector("#history-hint");
+const historyList = document.querySelector("#history-list");
+const loadHistoryButton = document.querySelector("#load-history");
 const categorySelect = document.querySelector("#category-select");
 const submissionStageSelect = document.querySelector("#submission-stage");
 const stageReminderInput = document.querySelector("#stage-reminder");
@@ -20,6 +26,7 @@ const asanaAssigneeSelect = document.querySelector("#asana-assignee-select");
 const draftKey = config.draftStorageKey || "egda-registration-draft";
 const themeKey = "egda-theme";
 const languageKey = "egda-language";
+let submissionHistory = [];
 let currentLanguage = "zh";
 
 const labels = {
@@ -91,7 +98,11 @@ const ui = {
   architectureCardTitles: Array.from(document.querySelectorAll(".architecture-card h3")),
   architectureCardBodies: Array.from(document.querySelectorAll(".architecture-card p")),
   previewEyebrow: document.querySelector(".preview-panel .eyebrow"),
-  previewTitle: document.querySelector(".preview-panel h2")
+  previewTitle: document.querySelector(".preview-panel h2"),
+  historyLabel,
+  historyTitle,
+  historyHint,
+  loadHistoryButton
 };
 
 const translations = {
@@ -99,10 +110,10 @@ const translations = {
     languageToggle: "EN",
     themeDark: "深色模式",
     themeLight: "淺色模式",
-    title: "EGDA 教育遊戲設計大賞報名",
+    title: "EGDA2026報名系統",
     description: "將 EGDA 報名、作品資訊填寫與附件上傳整合成單一頁面，方便參賽者一次完成送件。",
     heroEyebrow: "EGDA 2026",
-    heroTitle: "把報名、繳件、附件上傳整合成一次完成",
+    heroTitle: "EGDA2026報名系統",
     heroText: "這個頁面設計給教育遊戲設計大賞使用，將原本拆散的 Google 表單與檔案提交流程，收斂成一個適合 GitHub Pages 發佈的報名入口。",
     heroPrimary: "開始報名",
     heroSecondary: "",
@@ -125,6 +136,14 @@ const translations = {
     formEyebrow: "報名表單",
     formTitle: "依組別切換對應規則書欄位的一頁式送件",
     formHint: "目前欄位已依「2026全球華人教育遊戲設計大賞」第一階段報名與第二階段繳件規則調整。",
+    historyLabel: "我的送件紀錄",
+    historyTitle: "登入後查看自己先前填寫的表單",
+    historyHintSignedOut: "請先使用 Google / Gmail 登入，再載入你先前送出的資料。",
+    historyHintSignedIn: "你可以查看自己先前提交過的表單，並將內容載回目前頁面。",
+    historyLoad: "載入我的紀錄",
+    historyLoadIntoForm: "載入到表單",
+    historyEmpty: "目前沒有找到你先前提交的表單。",
+    historyFiles: "附件",
     legends: ["1. 隊伍與聯絡資訊", "2. 參賽作品資訊", "3. 檔案上傳", "4. 備註與授權"],
     labels: {
       teamName: "隊伍名稱", contactName: "主要聯絡人", contactEmail: "聯絡 Email", contactPhone: "聯絡電話",
@@ -182,6 +201,11 @@ const translations = {
       previewOnly: "目前尚未開放送出，請稍後再試或聯絡主辦單位。", success: "報名資料已成功送出。",
       fileTooLarge: "檔案 {name} 超過 {size}MB 上限。", uploadConverting: "正在轉換檔案並上傳至 Google Drive...",
       uploadFailed: "送出時發生錯誤。",
+      historyLoading: "正在載入你先前提交的資料...",
+      historyLoaded: "已載入你的送件紀錄。",
+      historyRestored: "已將先前送件內容載回表單。",
+      historyLoginRequired: "請先完成 Google 登入後再查看送件紀錄。",
+      historyLoadFailed: "無法載入先前送件資料。",
       googleSignedIn: "已完成 Google 登入。",
       googleSignedOut: "已登出 Google。",
       googleUnavailable: "Google 登入尚未開放。"
@@ -191,10 +215,10 @@ const translations = {
     languageToggle: "中文",
     themeDark: "Dark Mode",
     themeLight: "Light Mode",
-    title: "EGDA Registration",
+    title: "EGDA2026 Registration",
     description: "A single-page EGDA registration flow that combines team info, project details, and file uploads.",
     heroEyebrow: "EGDA 2026",
-    heroTitle: "Combine registration, submission, and uploads in one place",
+    heroTitle: "EGDA2026 Registration",
     heroText: "This page is designed for the Educational Game Design Award and merges the original scattered Google Forms and file submission flow into a single GitHub Pages entry point.",
     heroPrimary: "Start Registration",
     heroSecondary: "",
@@ -217,6 +241,14 @@ const translations = {
     formEyebrow: "Registration Form",
     formTitle: "Single-page submission with category-based rulebook fields",
     formHint: "The current fields reflect the Phase 1 registration and Phase 2 submission requirements of EGDA 2026.",
+    historyLabel: "My Submissions",
+    historyTitle: "Sign in to review your previous forms",
+    historyHintSignedOut: "Please sign in with Google / Gmail first, then load your previous submissions.",
+    historyHintSignedIn: "You can review your previous submissions and load one back into the form.",
+    historyLoad: "Load My History",
+    historyLoadIntoForm: "Load Into Form",
+    historyEmpty: "No previous submissions were found for this account.",
+    historyFiles: "Files",
     legends: ["1. Team and Contact", "2. Project Information", "3. File Uploads", "4. Notes and Consent"],
     labels: {
       teamName: "Team Name", contactName: "Primary Contact", contactEmail: "Contact Email", contactPhone: "Contact Phone",
@@ -274,6 +306,11 @@ const translations = {
       previewOnly: "Submission is not available right now. Please try again later or contact the organizer.", success: "Registration submitted successfully.",
       fileTooLarge: "File {name} exceeds the {size}MB limit.", uploadConverting: "Converting files and uploading to Google Drive...",
       uploadFailed: "An error occurred while submitting.",
+      historyLoading: "Loading your previous submissions...",
+      historyLoaded: "Your submission history has been loaded.",
+      historyRestored: "The selected submission has been restored into the form.",
+      historyLoginRequired: "Please sign in with Google before viewing your submission history.",
+      historyLoadFailed: "Failed to load previous submissions.",
       googleSignedIn: "Google sign-in completed.",
       googleSignedOut: "Signed out from Google.",
       googleUnavailable: "Google sign-in is not available yet."
@@ -358,10 +395,135 @@ function renderAssigneeOptions() {
   asanaAssigneeSelect.value = hasPreviousValue ? previousValue : options[0]?.gid || "";
 }
 
+function updateHistoryAuthState() {
+  if (!historyHint || !loadHistoryButton) {
+    return;
+  }
+  const isSignedIn = Boolean(googleIdTokenInput.value);
+  historyHint.textContent = isSignedIn ? currentPack().historyHintSignedIn : currentPack().historyHintSignedOut;
+  loadHistoryButton.disabled = !isSignedIn;
+}
+
+function escapeHtml(value) {
+  return String(value || "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll("\"", "&quot;")
+    .replaceAll("'", "&#39;");
+}
+
+function getSelectText(select, value) {
+  const option = Array.from(select.options).find((item) => item.value === value);
+  return option ? option.textContent : value || "-";
+}
+
+function formatSubmissionDate(value) {
+  if (!value) {
+    return "-";
+  }
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? value : date.toLocaleString(currentLanguage === "zh" ? "zh-TW" : "en-US");
+}
+
+function renderSubmissionHistory(submissions) {
+  submissionHistory = submissions;
+  historyList.innerHTML = "";
+
+  if (!submissions.length) {
+    historyList.innerHTML = `<p class="hint">${escapeHtml(currentPack().historyEmpty)}</p>`;
+    return;
+  }
+
+  submissions.forEach((submission) => {
+    const fields = submission.fields || {};
+    const files = Array.isArray(submission.files) ? submission.files : [];
+    const fileMarkup = files.length
+      ? `<ul class="history-files">${files.map((file) => `<li><a href="${escapeHtml(file.url)}" target="_blank" rel="noreferrer">${escapeHtml(file.fileName)}</a></li>`).join("")}</ul>`
+      : "";
+
+    const article = document.createElement("article");
+    article.className = "history-card";
+    article.innerHTML = `
+      <div class="history-card-header">
+        <div>
+          <h4>${escapeHtml(fields.projectTitle || fields.teamName || submission.submissionId)}</h4>
+          <p class="history-meta">
+            ${escapeHtml(fields.teamName || "-")}<br>
+            ${escapeHtml(getSelectText(categorySelect, fields.category))} / ${escapeHtml(getSelectText(submissionStageSelect, fields.submissionStage))}<br>
+            ${escapeHtml(formatSubmissionDate(submission.createdAt))}
+          </p>
+        </div>
+      </div>
+      ${fileMarkup}
+      <div class="history-actions">
+        <button class="button button-secondary" type="button" data-submission-id="${escapeHtml(submission.submissionId)}">${escapeHtml(currentPack().historyLoadIntoForm)}</button>
+      </div>
+    `;
+    historyList.appendChild(article);
+  });
+}
+
+function restoreSubmissionToForm(fields) {
+  Object.entries(fields || {}).forEach(([key, value]) => {
+    const field = form.elements.namedItem(key);
+    if (!field || value === undefined || Array.isArray(value)) {
+      return;
+    }
+    if (field.type === "checkbox") {
+      field.checked = value === true || value === "true" || value === "on";
+    } else if (field.type !== "file") {
+      field.value = value;
+    }
+  });
+
+  updateStageFields();
+  updateCategoryFields();
+
+  if (googleIdTokenInput.value) {
+    setGoogleSignedInState(googleAccountEmailInput.value, googleIdTokenInput.value);
+  }
+
+  setStatus(tMessage("historyRestored"), "success");
+  form.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+async function fetchJsonResponse(response) {
+  const text = await response.text();
+  if (!response.ok) {
+    throw new Error(`HTTP ${response.status}`);
+  }
+  return text ? JSON.parse(text) : { ok: true };
+}
+
+async function loadSubmissionHistory() {
+  if (!googleIdTokenInput.value) {
+    throw new Error(tMessage("historyLoginRequired"));
+  }
+  if (!config.submissionEndpoint) {
+    throw new Error(tMessage("historyLoadFailed"));
+  }
+
+  setStatus(tMessage("historyLoading"));
+  const endpoint = new URL(config.submissionEndpoint);
+  endpoint.searchParams.set("action", "listSubmissions");
+  endpoint.searchParams.set("idToken", googleIdTokenInput.value);
+  const result = await fetchJsonResponse(await fetch(endpoint.toString()));
+  if (result.ok === false) {
+    throw new Error(result.error || tMessage("historyLoadFailed"));
+  }
+
+  renderSubmissionHistory(result.submissions || []);
+  setStatus(tMessage("historyLoaded"), "success");
+}
+
 function applyTranslations() {
   const pack = currentPack();
   document.documentElement.lang = currentLanguage === "zh" ? "zh-Hant" : "en";
   document.title = pack.title;
+  if (versionBadge) {
+    versionBadge.textContent = config.appVersion || "v2026.03.06";
+  }
   ui.description.setAttribute("content", pack.description);
   languageToggleButton.textContent = pack.languageToggle;
   ui.heroEyebrow.textContent = pack.heroEyebrow;
@@ -373,6 +535,9 @@ function applyTranslations() {
   }
   applyArrayText(ui.infoLabels, pack.infoLabels);
   applyArrayText(ui.infoBodies, pack.infoBodies);
+  ui.historyLabel.textContent = pack.historyLabel;
+  ui.historyTitle.textContent = pack.historyTitle;
+  ui.loadHistoryButton.textContent = pack.historyLoad;
   ui.categoriesEyebrow.textContent = pack.categoriesEyebrow;
   ui.categoriesTitle.textContent = pack.categoriesTitle;
   applyArrayText(ui.categoryTitles, pack.categoryTitles);
@@ -428,6 +593,7 @@ function applyTranslations() {
     ui.previewTitle.textContent = pack.previewTitle;
   }
   updateStageReminder();
+  updateHistoryAuthState();
   applyTheme(document.body.dataset.theme || "light");
 }
 
@@ -442,6 +608,11 @@ function setGoogleSignedInState(email, credential) {
   googleAccountEmailInput.value = email || "";
   googleIdTokenInput.value = credential || "";
   googleLogoutButton.classList.toggle("hidden", !email);
+  if (!email) {
+    submissionHistory = [];
+    historyList.innerHTML = "";
+  }
+  updateHistoryAuthState();
 }
 
 function handleGoogleCredentialResponse(response) {
@@ -655,6 +826,14 @@ async function submitToEndpoint(currentForm) {
 }
 
 saveDraftButton.addEventListener("click", saveDraft);
+loadHistoryButton.addEventListener("click", async () => {
+  try {
+    await loadSubmissionHistory();
+  } catch (error) {
+    console.error(error);
+    setStatus(error.message || tMessage("historyLoadFailed"), "error");
+  }
+});
 themeToggleButton.addEventListener("click", toggleTheme);
 languageToggleButton.addEventListener("click", toggleLanguage);
 googleLogoutButton.addEventListener("click", () => {
@@ -666,6 +845,18 @@ submissionStageSelect.addEventListener("change", updateStageFields);
 
 form.addEventListener("input", () => {
   setStatus(tMessage("formUpdated"));
+});
+
+historyList.addEventListener("click", (event) => {
+  const button = event.target.closest("[data-submission-id]");
+  if (!button) {
+    return;
+  }
+  const submission = submissionHistory.find((item) => item.submissionId === button.dataset.submissionId);
+  if (!submission) {
+    return;
+  }
+  restoreSubmissionToForm(submission.fields || {});
 });
 
 form.addEventListener("submit", async (event) => {

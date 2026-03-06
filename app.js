@@ -9,6 +9,7 @@ const themeToggleButton = document.querySelector("#theme-toggle");
 const themeToggleLabel = themeToggleButton.querySelector(".theme-toggle-label");
 const languageToggleButton = document.querySelector("#language-toggle");
 const googleLoginButton = document.querySelector("#google-login-button");
+const heroGoogleLoginButton = document.querySelector("#hero-google-login-button");
 const googleLogoutButton = document.querySelector("#google-logout");
 const googleAccountEmailInput = document.querySelector("#google-account-email");
 const googleIdTokenInput = document.querySelector("#google-id-token");
@@ -113,8 +114,8 @@ const translations = {
     title: "EGDA2026報名系統",
     description: "將 EGDA 報名、作品資訊填寫與附件上傳整合成單一頁面，方便參賽者一次完成送件。",
     heroEyebrow: "EGDA 2026",
-    heroTitle: "EGDA2026報名系統",
-    heroText: "這個頁面設計給教育遊戲設計大賞使用，將原本拆散的 Google 表單與檔案提交流程，收斂成一個適合 GitHub Pages 發佈的報名入口。",
+    heroTitle: "EGDA2026 教育遊戲設計大賞報名入口",
+    heroText: "歡迎參與 2026 全球華人教育遊戲設計大賞。請依參賽組別與送件階段填寫資料，並於期限內完成附件上傳與報名提交。",
     heroPrimary: "開始報名",
     heroSecondary: "",
     infoLabels: ["報名方式", "第一階段", "第二階段", "送件提醒"],
@@ -218,8 +219,8 @@ const translations = {
     title: "EGDA2026 Registration",
     description: "A single-page EGDA registration flow that combines team info, project details, and file uploads.",
     heroEyebrow: "EGDA 2026",
-    heroTitle: "EGDA2026 Registration",
-    heroText: "This page is designed for the Educational Game Design Award and merges the original scattered Google Forms and file submission flow into a single GitHub Pages entry point.",
+    heroTitle: "EGDA2026 Registration Portal",
+    heroText: "Welcome to the 2026 Global Chinese Educational Game Design Awards. Please complete your category details, required files, and submission steps before the deadline.",
     heroPrimary: "Start Registration",
     heroSecondary: "",
     infoLabels: ["Registration", "Phase 1", "Phase 2", "Reminder"],
@@ -624,6 +625,9 @@ function handleGoogleCredentialResponse(response) {
 function initializeGoogleLogin() {
   if (!config.googleClientId || !window.google || !window.google.accounts) {
     googleLoginButton.classList.add("hidden");
+    if (heroGoogleLoginButton) {
+      heroGoogleLoginButton.classList.add("hidden");
+    }
     googleLogoutButton.classList.add("hidden");
     return;
   }
@@ -643,6 +647,18 @@ function initializeGoogleLogin() {
     text: "signin_with",
     locale: currentLanguage === "zh" ? "zh-TW" : "en"
   });
+
+  if (heroGoogleLoginButton) {
+    heroGoogleLoginButton.classList.remove("hidden");
+    heroGoogleLoginButton.innerHTML = "";
+    window.google.accounts.id.renderButton(heroGoogleLoginButton, {
+      theme: "outline",
+      size: "large",
+      shape: "pill",
+      text: "signin_with",
+      locale: currentLanguage === "zh" ? "zh-TW" : "en"
+    });
+  }
 }
 
 function setLanguage(language) {

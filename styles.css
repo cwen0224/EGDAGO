@@ -89,6 +89,10 @@ body::before {
   align-items: center;
 }
 
+.hero-google-login-button {
+  min-height: 48px;
+}
+
 .google-logout {
   min-height: 40px;
   padding: 0 14px;
@@ -260,8 +264,8 @@ section {
 }
 
 .hero-copy h1 {
-  font-size: clamp(2.7rem, 5vw, 4.8rem);
-  max-width: 10ch;
+  font-size: clamp(2.1rem, 3.8vw, 3.4rem);
+  max-width: 16ch;
 }
 
 .hero-text {

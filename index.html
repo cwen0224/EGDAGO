@@ -116,6 +116,26 @@
           </div>
           <button class="button button-secondary" type="button" id="load-history">載入我的紀錄</button>
         </div>
+        <div class="email-login-panel" id="email-login-panel">
+          <div class="email-login-grid">
+            <label class="field">
+              <span id="email-login-label">Email 驗證登入</span>
+              <input type="email" id="email-login-email" placeholder="name@example.com">
+            </label>
+            <button class="button button-secondary" type="button" id="send-email-code">寄送驗證碼</button>
+          </div>
+          <div class="email-login-grid">
+            <label class="field">
+              <span id="email-code-label">6 位數驗證碼</span>
+              <input type="text" id="email-login-code" inputmode="numeric" maxlength="6" placeholder="123456">
+            </label>
+            <button class="button button-secondary" type="button" id="verify-email-code">驗證並登入</button>
+          </div>
+          <div class="email-login-footer">
+            <p class="hint" id="email-login-status">也可以用 Email 驗證碼登入後查看自己先前填寫的表單。</p>
+            <button class="button button-secondary hidden" type="button" id="clear-email-login">清除 Email 登入</button>
+          </div>
+        </div>
         <p class="hint" id="history-hint">請先使用 Google / Gmail 登入，再載入你先前送出的資料。</p>
         <div class="history-list" id="history-list"></div>
       </div>

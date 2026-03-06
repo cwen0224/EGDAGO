@@ -218,6 +218,38 @@ section {
   margin-top: 16px;
 }
 
+.email-login-panel {
+  margin-top: 18px;
+  padding: 18px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.35);
+}
+
+.email-login-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: end;
+}
+
+.email-login-grid + .email-login-grid {
+  margin-top: 12px;
+}
+
+.email-login-grid .button {
+  min-width: 140px;
+}
+
+.email-login-footer {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+  margin-top: 12px;
+  flex-wrap: wrap;
+}
+
 .history-card {
   padding: 18px;
   border-radius: var(--radius-md);
@@ -490,7 +522,8 @@ textarea:focus {
   .info-strip,
   .category-grid,
   .architecture-grid,
-  .two-column {
+  .two-column,
+  .email-login-grid {
     grid-template-columns: 1fr;
   }
 

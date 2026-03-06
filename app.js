@@ -19,6 +19,14 @@ const historyTitle = document.querySelector("#history-title");
 const historyHint = document.querySelector("#history-hint");
 const historyList = document.querySelector("#history-list");
 const loadHistoryButton = document.querySelector("#load-history");
+const emailLoginLabel = document.querySelector("#email-login-label");
+const emailCodeLabel = document.querySelector("#email-code-label");
+const emailLoginEmailInput = document.querySelector("#email-login-email");
+const emailLoginCodeInput = document.querySelector("#email-login-code");
+const emailLoginStatus = document.querySelector("#email-login-status");
+const sendEmailCodeButton = document.querySelector("#send-email-code");
+const verifyEmailCodeButton = document.querySelector("#verify-email-code");
+const clearEmailLoginButton = document.querySelector("#clear-email-login");
 const categorySelect = document.querySelector("#category-select");
 const submissionStageSelect = document.querySelector("#submission-stage");
 const stageReminderInput = document.querySelector("#stage-reminder");
@@ -27,7 +35,9 @@ const asanaAssigneeSelect = document.querySelector("#asana-assignee-select");
 const draftKey = config.draftStorageKey || "egda-registration-draft";
 const themeKey = "egda-theme";
 const languageKey = "egda-language";
+const emailSessionKey = "egda-email-login-session";
 let submissionHistory = [];
+let emailLoginSession = null;
 let currentLanguage = "zh";
 
 const labels = {
@@ -103,7 +113,13 @@ const ui = {
   historyLabel,
   historyTitle,
   historyHint,
-  loadHistoryButton
+  loadHistoryButton,
+  emailLoginLabel,
+  emailCodeLabel,
+  emailLoginStatus,
+  sendEmailCodeButton,
+  verifyEmailCodeButton,
+  clearEmailLoginButton
 };
 
 const translations = {
@@ -141,10 +157,18 @@ const translations = {
     historyTitle: "登入後查看自己先前填寫的表單",
     historyHintSignedOut: "請先使用 Google / Gmail 登入，再載入你先前送出的資料。",
     historyHintSignedIn: "你可以查看自己先前提交過的表單，並將內容載回目前頁面。",
+    historyHintEmailSignedIn: "你已使用 Email 驗證登入，可以查看這個 Email 先前提交過的表單。",
     historyLoad: "載入我的紀錄",
     historyLoadIntoForm: "載入到表單",
     historyEmpty: "目前沒有找到你先前提交的表單。",
     historyFiles: "附件",
+    emailLoginLabel: "Email 驗證登入",
+    emailCodeLabel: "6 位數驗證碼",
+    emailLoginStatusSignedOut: "也可以用 Email 驗證碼登入後查看自己先前填寫的表單。",
+    emailLoginStatusSignedIn: "目前已使用 {email} 完成 Email 驗證登入。",
+    emailSendCode: "寄送驗證碼",
+    emailVerifyCode: "驗證並登入",
+    emailClearLogin: "清除 Email 登入",
     legends: ["1. 隊伍與聯絡資訊", "2. 參賽作品資訊", "3. 檔案上傳", "4. 備註與授權"],
     labels: {
       teamName: "隊伍名稱", contactName: "主要聯絡人", contactEmail: "聯絡 Email", contactPhone: "聯絡電話",
@@ -205,8 +229,17 @@ const translations = {
       historyLoading: "正在載入你先前提交的資料...",
       historyLoaded: "已載入你的送件紀錄。",
       historyRestored: "已將先前送件內容載回表單。",
-      historyLoginRequired: "請先完成 Google 登入後再查看送件紀錄。",
+      historyLoginRequired: "請先完成 Google 或 Email 驗證登入後再查看送件紀錄。",
       historyLoadFailed: "無法載入先前送件資料。",
+      emailCodeSending: "正在寄送驗證碼...",
+      emailCodeSent: "驗證碼已寄出，請到信箱查看。",
+      emailCodeSendFailed: "無法寄送驗證碼。",
+      emailCodeVerifying: "正在驗證 Email 驗證碼...",
+      emailLoginSuccess: "Email 驗證成功，現在可以查看自己的送件紀錄。",
+      emailLoginFailed: "Email 驗證失敗。",
+      emailLoginCleared: "已清除 Email 驗證登入。",
+      emailRequired: "請先輸入 Email。",
+      emailCodeRequired: "請輸入 6 位數驗證碼。",
       googleSignedIn: "已完成 Google 登入。",
       googleSignedOut: "已登出 Google。",
       googleUnavailable: "Google 登入尚未開放。"
@@ -246,10 +279,18 @@ const translations = {
     historyTitle: "Sign in to review your previous forms",
     historyHintSignedOut: "Please sign in with Google / Gmail first, then load your previous submissions.",
     historyHintSignedIn: "You can review your previous submissions and load one back into the form.",
+    historyHintEmailSignedIn: "You are signed in with email verification and can review submissions for this email address.",
     historyLoad: "Load My History",
     historyLoadIntoForm: "Load Into Form",
     historyEmpty: "No previous submissions were found for this account.",
     historyFiles: "Files",
+    emailLoginLabel: "Email Verification Login",
+    emailCodeLabel: "6-digit Verification Code",
+    emailLoginStatusSignedOut: "You can also sign in with an email verification code to review your previous forms.",
+    emailLoginStatusSignedIn: "Email verification is active for {email}.",
+    emailSendCode: "Send Code",
+    emailVerifyCode: "Verify and Sign In",
+    emailClearLogin: "Clear Email Login",
     legends: ["1. Team and Contact", "2. Project Information", "3. File Uploads", "4. Notes and Consent"],
     labels: {
       teamName: "Team Name", contactName: "Primary Contact", contactEmail: "Contact Email", contactPhone: "Contact Phone",
@@ -310,8 +351,17 @@ const translations = {
       historyLoading: "Loading your previous submissions...",
       historyLoaded: "Your submission history has been loaded.",
       historyRestored: "The selected submission has been restored into the form.",
-      historyLoginRequired: "Please sign in with Google before viewing your submission history.",
+      historyLoginRequired: "Please sign in with Google or email verification before viewing your submission history.",
       historyLoadFailed: "Failed to load previous submissions.",
+      emailCodeSending: "Sending verification code...",
+      emailCodeSent: "Verification code sent. Please check your inbox.",
+      emailCodeSendFailed: "Failed to send verification code.",
+      emailCodeVerifying: "Verifying your email code...",
+      emailLoginSuccess: "Email verification succeeded. You can now view your submission history.",
+      emailLoginFailed: "Email verification failed.",
+      emailLoginCleared: "Email verification login cleared.",
+      emailRequired: "Please enter your email address first.",
+      emailCodeRequired: "Please enter the 6-digit verification code.",
       googleSignedIn: "Google sign-in completed.",
       googleSignedOut: "Signed out from Google.",
       googleUnavailable: "Google sign-in is not available yet."
@@ -396,13 +446,64 @@ function renderAssigneeOptions() {
   asanaAssigneeSelect.value = hasPreviousValue ? previousValue : options[0]?.gid || "";
 }
 
-function updateHistoryAuthState() {
-  if (!historyHint || !loadHistoryButton) {
+function hasHistoryAuth() {
+  return Boolean(googleIdTokenInput.value || emailLoginSession?.sessionToken);
+}
+
+function getHistoryAuthMode() {
+  if (googleIdTokenInput.value) {
+    return "google";
+  }
+  if (emailLoginSession?.sessionToken) {
+    return "email";
+  }
+  return "";
+}
+
+function saveEmailLoginSession(session) {
+  emailLoginSession = session;
+  if (session?.sessionToken) {
+    localStorage.setItem(emailSessionKey, JSON.stringify(session));
+    emailLoginEmailInput.value = session.email || "";
+  } else {
+    localStorage.removeItem(emailSessionKey);
+  }
+  updateHistoryAuthState();
+}
+
+function restoreEmailLoginSession() {
+  const raw = localStorage.getItem(emailSessionKey);
+  if (!raw) {
     return;
   }
-  const isSignedIn = Boolean(googleIdTokenInput.value);
-  historyHint.textContent = isSignedIn ? currentPack().historyHintSignedIn : currentPack().historyHintSignedOut;
-  loadHistoryButton.disabled = !isSignedIn;
+  try {
+    const parsed = JSON.parse(raw);
+    if (parsed?.sessionToken && parsed?.email) {
+      emailLoginSession = parsed;
+      emailLoginEmailInput.value = parsed.email;
+    }
+  } catch (error) {
+    localStorage.removeItem(emailSessionKey);
+  }
+}
+
+function updateHistoryAuthState() {
+  if (!historyHint || !loadHistoryButton || !emailLoginStatus) {
+    return;
+  }
+  const mode = getHistoryAuthMode();
+  if (mode === "google") {
+    historyHint.textContent = currentPack().historyHintSignedIn;
+  } else if (mode === "email") {
+    historyHint.textContent = currentPack().historyHintEmailSignedIn;
+  } else {
+    historyHint.textContent = currentPack().historyHintSignedOut;
+  }
+  emailLoginStatus.textContent = mode === "email"
+    ? tMessage("emailLoginStatusSignedIn", { email: emailLoginSession.email })
+    : currentPack().emailLoginStatusSignedOut;
+  clearEmailLoginButton.classList.toggle("hidden", mode !== "email");
+  loadHistoryButton.disabled = !hasHistoryAuth();
 }
 
 function escapeHtml(value) {
@@ -498,7 +599,7 @@ async function fetchJsonResponse(response) {
 }
 
 async function loadSubmissionHistory() {
-  if (!googleIdTokenInput.value) {
+  if (!hasHistoryAuth()) {
     throw new Error(tMessage("historyLoginRequired"));
   }
   if (!config.submissionEndpoint) {
@@ -508,7 +609,11 @@ async function loadSubmissionHistory() {
   setStatus(tMessage("historyLoading"));
   const endpoint = new URL(config.submissionEndpoint);
   endpoint.searchParams.set("action", "listSubmissions");
-  endpoint.searchParams.set("idToken", googleIdTokenInput.value);
+  if (googleIdTokenInput.value) {
+    endpoint.searchParams.set("idToken", googleIdTokenInput.value);
+  } else if (emailLoginSession?.sessionToken) {
+    endpoint.searchParams.set("sessionToken", emailLoginSession.sessionToken);
+  }
   const result = await fetchJsonResponse(await fetch(endpoint.toString()));
   if (result.ok === false) {
     throw new Error(result.error || tMessage("historyLoadFailed"));
@@ -516,6 +621,49 @@ async function loadSubmissionHistory() {
 
   renderSubmissionHistory(result.submissions || []);
   setStatus(tMessage("historyLoaded"), "success");
+}
+
+async function postAction(payload) {
+  if (!config.submissionEndpoint) {
+    throw new Error(tMessage("uploadFailed"));
+  }
+  return fetchJsonResponse(await fetch(config.submissionEndpoint, {
+    method: "POST",
+    headers: { "Content-Type": "text/plain;charset=utf-8" },
+    body: JSON.stringify(payload)
+  }));
+}
+
+async function requestEmailVerificationCode() {
+  const email = emailLoginEmailInput.value.trim();
+  if (!email) {
+    throw new Error(tMessage("emailRequired"));
+  }
+  setStatus(tMessage("emailCodeSending"));
+  const result = await postAction({ action: "requestEmailLoginCode", email });
+  if (result.ok === false) {
+    throw new Error(result.error || tMessage("emailCodeSendFailed"));
+  }
+  setStatus(tMessage("emailCodeSent"), "success");
+}
+
+async function verifyEmailVerificationCode() {
+  const email = emailLoginEmailInput.value.trim();
+  const code = emailLoginCodeInput.value.trim();
+  if (!email) {
+    throw new Error(tMessage("emailRequired"));
+  }
+  if (!code) {
+    throw new Error(tMessage("emailCodeRequired"));
+  }
+  setStatus(tMessage("emailCodeVerifying"));
+  const result = await postAction({ action: "verifyEmailLoginCode", email, code });
+  if (result.ok === false) {
+    throw new Error(result.error || tMessage("emailLoginFailed"));
+  }
+  saveEmailLoginSession({ email: result.email, sessionToken: result.sessionToken });
+  emailLoginCodeInput.value = "";
+  setStatus(tMessage("emailLoginSuccess"), "success");
 }
 
 function applyTranslations() {
@@ -539,6 +687,11 @@ function applyTranslations() {
   ui.historyLabel.textContent = pack.historyLabel;
   ui.historyTitle.textContent = pack.historyTitle;
   ui.loadHistoryButton.textContent = pack.historyLoad;
+  ui.emailLoginLabel.textContent = pack.emailLoginLabel;
+  ui.emailCodeLabel.textContent = pack.emailCodeLabel;
+  ui.sendEmailCodeButton.textContent = pack.emailSendCode;
+  ui.verifyEmailCodeButton.textContent = pack.emailVerifyCode;
+  ui.clearEmailLoginButton.textContent = pack.emailClearLogin;
   ui.categoriesEyebrow.textContent = pack.categoriesEyebrow;
   ui.categoriesTitle.textContent = pack.categoriesTitle;
   applyArrayText(ui.categoryTitles, pack.categoryTitles);
@@ -583,6 +736,8 @@ function applyTranslations() {
   submitButton.textContent = pack.submit;
   googleLogoutButton.textContent = pack.googleLogout;
   googleAccountEmailInput.placeholder = pack.googleEmailPlaceholder;
+  emailLoginEmailInput.placeholder = "name@example.com";
+  emailLoginCodeInput.placeholder = currentLanguage === "zh" ? "123456" : "123456";
   if (ui.architectureEyebrow) {
     ui.architectureEyebrow.textContent = pack.architectureEyebrow;
     ui.architectureTitle.textContent = pack.architectureTitle;
@@ -609,7 +764,7 @@ function setGoogleSignedInState(email, credential) {
   googleAccountEmailInput.value = email || "";
   googleIdTokenInput.value = credential || "";
   googleLogoutButton.classList.toggle("hidden", !email);
-  if (!email) {
+  if (!email && !emailLoginSession?.sessionToken) {
     submissionHistory = [];
     historyList.innerHTML = "";
   }
@@ -850,6 +1005,28 @@ loadHistoryButton.addEventListener("click", async () => {
     setStatus(error.message || tMessage("historyLoadFailed"), "error");
   }
 });
+sendEmailCodeButton.addEventListener("click", async () => {
+  try {
+    await requestEmailVerificationCode();
+  } catch (error) {
+    console.error(error);
+    setStatus(error.message || tMessage("emailCodeSendFailed"), "error");
+  }
+});
+verifyEmailCodeButton.addEventListener("click", async () => {
+  try {
+    await verifyEmailVerificationCode();
+  } catch (error) {
+    console.error(error);
+    setStatus(error.message || tMessage("emailLoginFailed"), "error");
+  }
+});
+clearEmailLoginButton.addEventListener("click", () => {
+  saveEmailLoginSession(null);
+  emailLoginCodeInput.value = "";
+  historyList.innerHTML = "";
+  setStatus(tMessage("emailLoginCleared"), "success");
+});
 themeToggleButton.addEventListener("click", toggleTheme);
 languageToggleButton.addEventListener("click", toggleLanguage);
 googleLogoutButton.addEventListener("click", () => {
@@ -899,6 +1076,7 @@ form.addEventListener("submit", async (event) => {
   }
 });
 
+restoreEmailLoginSession();
 restoreDraft();
 setLanguage(detectLanguage());
 restoreTheme();

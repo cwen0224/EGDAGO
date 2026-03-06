@@ -1,5 +1,5 @@
 window.EGDA_CONFIG = {
-  appVersion: "v2026.03.06-1729",
+  appVersion: "v2026.03.06-1804",
   submissionEndpoint: "https://script.google.com/macros/s/AKfycbzJ_oQTU4F0WCY8zVnDjp4lPeH2lvW8sMUVCp7sjie85fuTrtt-c3JEewEE6k9fSJos/exec",
   requestMethod: "POST",
   draftStorageKey: "egda-registration-draft",

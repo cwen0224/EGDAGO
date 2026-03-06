@@ -1,8 +1,29 @@
 const LOG_SHEET_NAME = "EGDA Uploads";
+const EMAIL_CODE_CACHE_PREFIX = "egda-email-code:";
+const EMAIL_SESSION_CACHE_PREFIX = "egda-email-session:";
+const EMAIL_CODE_TTL_SECONDS = 600;
+const EMAIL_SESSION_TTL_SECONDS = 21600;
 
 function doPost(e) {
   try {
     const payload = JSON.parse(e.postData.contents || "{}");
+    const action = payload.action || "";
+    if (action === "requestEmailLoginCode") {
+      const email = normalizeEmail_(payload.email || "");
+      requestEmailLoginCode_(email);
+      return ContentService
+        .createTextOutput(JSON.stringify({ ok: true, email: email }))
+        .setMimeType(ContentService.MimeType.JSON);
+    }
+
+    if (action === "verifyEmailLoginCode") {
+      const email = normalizeEmail_(payload.email || "");
+      const sessionToken = verifyEmailLoginCode_(email, String(payload.code || ""));
+      return ContentService
+        .createTextOutput(JSON.stringify({ ok: true, email: email, sessionToken: sessionToken }))
+        .setMimeType(ContentService.MimeType.JSON);
+    }
+
     const fields = payload.fields || {};
     const storedFields = sanitizeStoredFields_(fields);
     const files = payload.files || [];
@@ -63,7 +84,8 @@ function doGet(e) {
   if (action === "listSubmissions") {
     try {
       const idToken = e && e.parameter ? e.parameter.idToken || "" : "";
-      const email = getVerifiedGoogleEmail_(idToken);
+      const sessionToken = e && e.parameter ? e.parameter.sessionToken || "" : "";
+      const email = idToken ? getVerifiedGoogleEmail_(idToken) : getVerifiedSessionEmail_(sessionToken);
       const submissions = listSubmissionsForEmail_(email);
       return ContentService
         .createTextOutput(JSON.stringify({ ok: true, email: email, submissions: submissions }))
@@ -158,6 +180,50 @@ function listSubmissionsForEmail_(email) {
       return googleEmail === normalizedEmail || contactEmail === normalizedEmail;
     })
     .reverse();
+}
+
+function requestEmailLoginCode_(email) {
+  if (!email) {
+    throw new Error("Missing email address.");
+  }
+
+  const code = String(Math.floor(100000 + Math.random() * 900000));
+  CacheService.getScriptCache().put(
+    `${EMAIL_CODE_CACHE_PREFIX}${email}`,
+    JSON.stringify({ code: code, email: email }),
+    EMAIL_CODE_TTL_SECONDS
+  );
+
+  MailApp.sendEmail({
+    to: email,
+    subject: "EGDA2026 驗證碼",
+    body: [
+      "你的 EGDA2026 驗證碼如下：",
+      "",
+      code,
+      "",
+      "此驗證碼 10 分鐘內有效。",
+      "若你並未發出此請求，請忽略這封信。"
+    ].join("\n")
+  });
+}
+
+function verifyEmailLoginCode_(email, code) {
+  if (!email || !code) {
+    throw new Error("Missing email or verification code.");
+  }
+
+  const cache = CacheService.getScriptCache();
+  const raw = cache.get(`${EMAIL_CODE_CACHE_PREFIX}${email}`);
+  const data = parseJsonSafely_(raw, null);
+  if (!data || String(data.code) !== String(code).trim()) {
+    throw new Error("Invalid or expired verification code.");
+  }
+
+  cache.remove(`${EMAIL_CODE_CACHE_PREFIX}${email}`);
+  const sessionToken = Utilities.getUuid();
+  cache.put(`${EMAIL_SESSION_CACHE_PREFIX}${sessionToken}`, email, EMAIL_SESSION_TTL_SECONDS);
+  return sessionToken;
 }
 
 function maybeCreateAsanaTask_(fields, storedFiles, submissionId) {
@@ -265,6 +331,17 @@ function getVerifiedGoogleEmail_(idToken) {
   return payload.email;
 }
 
+function getVerifiedSessionEmail_(sessionToken) {
+  if (!sessionToken) {
+    throw new Error("Missing session token.");
+  }
+  const email = CacheService.getScriptCache().get(`${EMAIL_SESSION_CACHE_PREFIX}${sessionToken}`);
+  if (!email) {
+    throw new Error("Email login session expired. Please verify again.");
+  }
+  return email;
+}
+
 function sanitizeStoredFields_(fields) {
   const clone = JSON.parse(JSON.stringify(fields || {}));
   delete clone.googleIdToken;
@@ -277,6 +354,10 @@ function parseJsonSafely_(value, fallback) {
   } catch (error) {
     return fallback;
   }
+}
+
+function normalizeEmail_(email) {
+  return String(email || "").trim().toLowerCase();
 }
 
 function getRequiredSetting_(key) {

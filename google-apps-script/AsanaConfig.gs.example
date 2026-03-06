@@ -1,0 +1,6 @@
+const ASANA_CONFIG = {
+  enabled: false,
+  personalAccessToken: "PASTE_ASANA_PERSONAL_ACCESS_TOKEN",
+  projectGid: "PASTE_ASANA_PROJECT_GID",
+  sectionGid: ""
+};

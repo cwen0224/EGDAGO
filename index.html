@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>EGDA 教育遊戲設計大賞報名</title>
+  <meta
+    name="description"
+    content="將 EGDA 報名、作品資訊填寫與附件上傳整合成單一頁面，方便參賽者一次完成送件。"
+  >
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&family=DM+Serif+Display:ital@0;1&display=swap"
+    rel="stylesheet"
+  >
+  <link rel="stylesheet" href="styles.css">
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+</head>
+<body>
+  <main class="page-shell">
+    <div class="topbar">
+      <div class="google-auth" id="google-auth">
+        <div class="google-login-button" id="google-login-button"></div>
+        <button class="google-logout hidden" id="google-logout" type="button">登出 Google</button>
+      </div>
+      <button
+        class="language-toggle"
+        id="language-toggle"
+        type="button"
+        aria-label="切換語言"
+      >
+        EN
+      </button>
+      <button
+        class="theme-toggle"
+        id="theme-toggle"
+        type="button"
+        aria-label="切換深色模式"
+        aria-pressed="false"
+      >
+        <span class="theme-toggle-label">深色模式</span>
+      </button>
+    </div>
+    <section class="hero">
+      <div class="hero-copy">
+        <p class="eyebrow">EGDA 2026</p>
+        <h1>把報名、繳件、附件上傳整合成一次完成</h1>
+        <p class="hero-text">
+          這個頁面設計給教育遊戲設計大賞使用，將原本拆散的 Google 表單與檔案提交流程，
+          收斂成一個適合 GitHub Pages 發佈的報名入口。
+        </p>
+        <div class="hero-actions">
+          <a class="button button-primary" href="#registration-form">開始報名</a>
+        </div>
+      </div>
+    </section>
+
+    <section class="info-strip">
+      <article>
+        <p class="info-label">報名方式</p>
+        <p>全程線上報名，請依階段上傳指定資料。</p>
+      </article>
+      <article>
+        <p class="info-label">第一階段</p>
+        <p>2026 年 4 月 24 日 23:59 前完成報名、同意書與繳費證明。</p>
+      </article>
+      <article>
+        <p class="info-label">第二階段</p>
+        <p>2026 年 4 月 24 日至 2026 年 8 月 14 日上傳作品資料與附件。</p>
+      </article>
+      <article>
+        <p class="info-label">送件提醒</p>
+        <p>請先確認組別、檔案格式與規則書內容是否符合簡章要求。</p>
+      </article>
+    </section>
+
+    <section class="categories">
+      <div class="section-heading">
+        <p class="eyebrow">組別資訊</p>
+        <h2>目前已對齊數位組、教育實境組與桌遊組規則書欄位</h2>
+      </div>
+      <div class="category-grid">
+        <article class="category-card">
+          <h3>教育桌遊設計</h3>
+          <p>適合以實體配件為主的桌遊作品，可分一般組與學生組。</p>
+        </article>
+        <article class="category-card">
+          <h3>教育實境遊戲設計</h3>
+          <p>適合結合實體場域、機關或任務設計的實境作品。</p>
+        </article>
+        <article class="category-card">
+          <h3>數位教育遊戲設計</h3>
+          <p>適合全數位作品，通常需提供執行檔、介紹影片與補充文件。</p>
+        </article>
+        <article class="category-card">
+          <h3>遊戲化教學設計</h3>
+          <p>適合教案、課程活動、遊戲化課堂流程等教育應用方案。</p>
+        </article>
+      </div>
+    </section>
+
+    <section class="form-section" id="registration-form">
+      <div class="section-heading">
+        <p class="eyebrow">報名表單</p>
+        <h2>依組別切換對應規則書欄位的一頁式送件</h2>
+      </div>
+
+      <p class="hint">
+        目前欄位已依「2026全球華人教育遊戲設計大賞」第一階段報名與第二階段繳件規則調整。
+      </p>
+
+      <form id="egda-form" class="registration-form">
+        <fieldset>
+          <legend>1. 隊伍與聯絡資訊</legend>
+          <div class="field-grid two-column">
+            <label class="field">
+              <span>隊伍名稱</span>
+              <input type="text" name="teamName" required>
+            </label>
+            <label class="field">
+              <span>主要聯絡人</span>
+              <input type="text" name="contactName" required>
+            </label>
+            <label class="field">
+              <span>聯絡 Email</span>
+              <input type="email" name="contactEmail" required>
+            </label>
+            <label class="field">
+              <span>Google 登入 Email</span>
+              <input type="email" name="googleAccountEmail" id="google-account-email" readonly placeholder="請先使用 Google / Gmail 登入">
+            </label>
+            <label class="field">
+              <span>聯絡電話</span>
+              <input type="tel" name="contactPhone" required>
+            </label>
+            <label class="field">
+              <span>所屬單位 / 學校</span>
+              <input type="text" name="organization">
+            </label>
+            <label class="field">
+              <span>隊伍人數</span>
+              <input type="number" name="memberCount" min="1" max="20" required>
+            </label>
+          </div>
+        </fieldset>
+
+        <fieldset>
+          <legend>2. 參賽作品資訊</legend>
+          <div class="field-grid two-column">
+            <label class="field">
+              <span>報名組別</span>
+              <select name="category" id="category-select" required>
+                <option value="digital" selected>數位教育遊戲設計組</option>
+                <option value="boardgame-general">教育桌遊設計｜一般組</option>
+                <option value="boardgame-student">教育桌遊設計｜學生組</option>
+                <option value="larp">教育實境遊戲設計組</option>
+                <option value="gamified-learning">遊戲化教學設計組</option>
+              </select>
+            </label>
+            <label class="field">
+              <span>作品名稱</span>
+              <input type="text" name="projectTitle" required>
+            </label>
+          </div>
+
+          <div class="field-grid">
+            <label class="field">
+              <span>學習目標</span>
+              <textarea name="learningGoal" rows="4" required placeholder="透過本遊戲，學會／練習什麼內容？並說明如何透過遊戲目標達成學習目標。"></textarea>
+            </label>
+            <label class="field">
+              <span>遊戲背景</span>
+              <textarea name="gameBackground" rows="4" required placeholder="根據學習目標或遊戲主題，設定遊戲的故事背景。"></textarea>
+            </label>
+          </div>
+          <div class="field-grid two-column">
+            <label class="field">
+              <span>遊戲時間</span>
+              <input type="text" name="gameDuration" required placeholder="例如：20-30 分鐘">
+            </label>
+            <label class="field">
+              <span>遊戲人數</span>
+              <input type="text" name="playerCount" required placeholder="例如：2-4 人">
+            </label>
+          </div>
+          <div class="field-grid">
+            <label class="field">
+              <span>遊戲進行</span>
+              <textarea name="gameplay" rows="6" required placeholder="按步驟描述遊戲流程及遇到任何狀況的處理方式。"></textarea>
+            </label>
+            <label class="field category-only hidden" data-category-group="boardgame-general,boardgame-student">
+              <span>配件介紹</span>
+              <textarea name="components" rows="4" placeholder="每種類配件，清楚說明。"></textarea>
+            </label>
+            <label class="field category-only hidden" data-category-group="boardgame-general,boardgame-student">
+              <span>遊戲設置</span>
+              <textarea name="setup" rows="4" placeholder="遊戲開始前，如何擺設及發給玩家的配件。"></textarea>
+            </label>
+            <label class="field category-only hidden" data-category-group="larp">
+              <span>道具</span>
+              <textarea name="props" rows="4" placeholder="卡牌、小工具等等。"></textarea>
+            </label>
+            <label class="field">
+              <span>遊戲結束條件</span>
+              <textarea name="endCondition" rows="4" required placeholder="計分方法、判斷勝負。"></textarea>
+            </label>
+            <label class="field">
+              <span>情境、鷹架等等（與認知設計相關之項目）</span>
+              <textarea name="cognitiveDesign" rows="4" placeholder="說明遊戲中的教學鷹架、情境設計、提示設計等。"></textarea>
+            </label>
+            <label class="field">
+              <span>作品網址 / 試玩連結</span>
+              <input type="url" name="projectUrl" placeholder="https://">
+            </label>
+            <label class="field">
+              <span>介紹影片連結</span>
+              <input type="url" name="videoUrl" placeholder="https://">
+            </label>
+            <label class="field">
+              <span>補充</span>
+              <textarea name="projectSummary" rows="4" placeholder="其他評審需要知道的補充資訊。"></textarea>
+            </label>
+          </div>
+
+          <div class="field-grid category-only hidden" data-category-group="boardgame-general,boardgame-student">
+            <label class="field">
+              <span>卡片一覽</span>
+              <textarea name="cardOverview" rows="5" placeholder="每種類卡片，至少提供五張卡片的正反面及內容介紹；不到五張者全數提供。沒卡片者可註明無。"></textarea>
+            </label>
+          </div>
+
+          <div class="field-grid category-only hidden" data-category-group="larp">
+            <label class="field">
+              <span>關卡謎題內容</span>
+              <textarea name="puzzleContent" rows="5" placeholder="含括謎題本身、劇情、裝置、道具、地點等等。"></textarea>
+            </label>
+            <div class="field-grid two-column">
+              <label class="field">
+                <span>單人 / 多人模式</span>
+                <input type="text" name="playMode" placeholder="例如：多人合作 / 單人挑戰">
+              </label>
+              <label class="field">
+                <span>提示</span>
+                <input type="text" name="hintPolicy" placeholder="可由玩家自由選擇是否使用，以避免卡關。">
+              </label>
+            </div>
+            <label class="field">
+              <span>解析</span>
+              <textarea name="solutionExplanation" rows="5" placeholder="解謎之方式、原因、對照相關所有內容，越詳盡越好。"></textarea>
+            </label>
+          </div>
+        </fieldset>
+
+        <fieldset>
+          <legend>3. 檔案上傳</legend>
+          <p class="hint">
+            請先選擇目前要處理的是第一階段報名或第二階段繳件。
+          </p>
+          <div class="field-grid two-column">
+            <label class="field">
+              <span>送件階段</span>
+              <select name="submissionStage" id="submission-stage" required>
+                <option value="stage1" selected>第一階段：報名與繳費</option>
+                <option value="stage2">第二階段：作品繳件</option>
+              </select>
+            </label>
+            <label class="field">
+              <span>目前提醒</span>
+              <input type="text" id="stage-reminder" value="第一階段截止：2026-04-24 23:59" readonly>
+            </label>
+          </div>
+
+          <div class="field-grid stage-only" data-stage-group="stage1">
+            <label class="field">
+              <span>參賽同意書</span>
+              <input
+                type="file"
+                name="consentFile"
+                accept=".pdf,.jpg,.jpeg,.png"
+                data-required-when-visible="true"
+              >
+            </label>
+            <label class="field">
+              <span>報名費繳費證明</span>
+              <input
+                type="file"
+                name="paymentProofFile"
+                accept=".pdf,.jpg,.jpeg,.png"
+                data-required-when-visible="true"
+              >
+            </label>
+          </div>
+
+          <div class="field-grid stage-only hidden" data-stage-group="stage2">
+            <label class="field category-only" data-category-group="boardgame-general,boardgame-student,larp">
+              <span>規則書（15MB 以內）</span>
+              <input
+                type="file"
+                name="rulebookFile"
+                accept=".pdf,.doc,.docx"
+                data-required-when-visible="true"
+              >
+            </label>
+            <label class="field category-only hidden" data-category-group="digital">
+              <span>遊戲說明書</span>
+              <input
+                type="file"
+                name="gameManualFile"
+                accept=".pdf,.doc,.docx"
+                data-required-when-visible="true"
+              >
+            </label>
+          </div>
+
+          <div class="field-grid">
+            <label class="field stage-only hidden" data-stage-group="stage2">
+              <span>作品圖片 / 補充圖檔（可多選）</span>
+              <input type="file" name="imageFiles" accept=".png,.jpg,.jpeg,.webp" multiple>
+            </label>
+            <label class="field category-only hidden" data-category-group="boardgame-general,boardgame-student">
+              <span>卡片圖檔 / 配件照片（可多選）</span>
+              <input type="file" name="cardAssets" accept=".png,.jpg,.jpeg,.webp,.pdf" multiple>
+            </label>
+            <label class="field category-only hidden" data-category-group="larp">
+              <span>相關照片（可多選）</span>
+              <input type="file" name="referencePhotos" accept=".png,.jpg,.jpeg,.webp" multiple>
+            </label>
+            <label class="field category-only hidden" data-category-group="digital">
+              <span>遊戲執行檔案</span>
+              <input type="file" name="gameBuildFiles" multiple data-required-when-visible="true">
+            </label>
+            <label class="field category-only hidden" data-category-group="digital">
+              <span>企劃設定集 / 美術設定集 / 其他加分文件</span>
+              <input type="file" name="bonusFiles" multiple>
+            </label>
+            <label class="field category-only hidden" data-category-group="larp">
+              <span>執行檔或簡報</span>
+              <input type="file" name="demoFiles" multiple>
+            </label>
+            <label class="field stage-only hidden" data-stage-group="stage2">
+              <span>補充附件（可多選）</span>
+              <input type="file" name="attachmentFiles" multiple>
+            </label>
+          </div>
+        </fieldset>
+
+        <fieldset>
+          <legend>4. 備註與授權</legend>
+          <div class="field-grid">
+            <label class="field hidden" id="asana-assignee-field">
+              <span>內部通知對象</span>
+              <select name="assigneeGid" id="asana-assignee-select">
+                <option value="">不指定</option>
+              </select>
+            </label>
+            <label class="field">
+              <span>其他補充說明</span>
+              <textarea name="notes" rows="4"></textarea>
+            </label>
+            <label class="checkbox-field">
+              <input type="checkbox" name="agreeRules" required>
+              <span>我已閱讀比賽規則，並同意主辦單位依活動需求使用本次提交資料。</span>
+            </label>
+          </div>
+        </fieldset>
+
+        <div class="form-actions">
+          <button class="button button-secondary" type="button" id="save-draft">儲存草稿</button>
+          <button class="button button-primary" type="submit">送出報名</button>
+        </div>
+
+        <p class="status-message" id="status-message" aria-live="polite"></p>
+        <input type="hidden" name="googleIdToken" id="google-id-token">
+      </form>
+    </section>
+
+  </main>
+
+  <script src="config.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

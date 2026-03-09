@@ -32,3 +32,56 @@
 - `ASANA_SECTION_GID`
 
 這樣每次表單送出成功後，Apps Script 也會同步建立一張 Asana 任務。實際要指派給誰，改由前端送出的 `assigneeGid` 決定，不再依賴固定的 Script Property。
+
+## Asana 自動寄信佇列
+
+如果你要把 Asana 某個區段當成寄信佇列，讓 GAS 自動寄送 Email 給參賽者，請再補這幾個 Script Properties：
+
+- `ASANA_MAIL_SECTION_GID`
+- `ASANA_MAIL_DONE_SECTION_GID`
+- `ASANA_MAIL_SENDER_NAME`
+
+用途：
+
+- `ASANA_MAIL_SECTION_GID`
+  要掃描的寄信佇列區段
+- `ASANA_MAIL_DONE_SECTION_GID`
+  寄送成功後移入的完成區段，可留空
+- `ASANA_MAIL_SENDER_NAME`
+  收件者看到的寄件者名稱
+
+Task 描述必須用固定格式：
+
+```txt
+EGDA_MAIL
+TO: participant@example.com
+CC: backup@example.com
+SUBJECT: EGDA2026 報名提醒
+BODY:
+您好，
+
+這裡是要寄出的內文。
+可以直接換行。
+```
+
+規則：
+
+- 第一行必須是 `EGDA_MAIL`
+- `TO:` 必填
+- `CC:` 選填，可用逗號分隔多個 Email
+- `SUBJECT:` 若省略，會改用 task 標題
+- `BODY:` 之後的全部內容都會當成信件正文
+
+執行方式：
+
+1. 在 GAS 執行一次 `installAsanaEmailTrigger()`
+2. 它會建立每 5 分鐘執行一次的排程
+3. 也可以手動呼叫：
+   `GET ?action=processAsanaEmailQueue`
+
+處理結果：
+
+- 成功寄出後，task 會被加上 `[EGDA_MAIL_SENT]` 註記
+- 若有設定 `ASANA_MAIL_DONE_SECTION_GID`，task 會移到該區段
+- task 也會被標記為 completed
+- 若格式錯誤或寄信失敗，task 會被加上 `[EGDA_MAIL_ERROR]` 註記

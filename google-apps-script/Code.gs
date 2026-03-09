@@ -97,6 +97,19 @@ function doGet(e) {
     }
   }
 
+  if (action === "processAsanaEmailQueue") {
+    try {
+      const result = processAsanaEmailQueue();
+      return ContentService
+        .createTextOutput(JSON.stringify({ ok: true, result: result }))
+        .setMimeType(ContentService.MimeType.JSON);
+    } catch (error) {
+      return ContentService
+        .createTextOutput(JSON.stringify({ ok: false, error: error.message }))
+        .setMimeType(ContentService.MimeType.JSON);
+    }
+  }
+
   return ContentService
     .createTextOutput(JSON.stringify({ ok: true, message: "EGDA upload backend is running." }))
     .setMimeType(ContentService.MimeType.JSON);
@@ -110,7 +123,10 @@ function setupScriptPropertiesTemplate() {
     ASANA_ENABLED: "true",
     ASANA_PERSONAL_ACCESS_TOKEN: "",
     ASANA_PROJECT_GID: "1212853000554713",
-    ASANA_SECTION_GID: "1212853000554714"
+    ASANA_SECTION_GID: "1212853000554714",
+    ASANA_MAIL_SECTION_GID: "",
+    ASANA_MAIL_DONE_SECTION_GID: "",
+    ASANA_MAIL_SENDER_NAME: "EGDA2026"
   };
 
   Object.entries(defaults).forEach(([key, value]) => {
@@ -125,6 +141,82 @@ function setupScriptPropertiesTemplate() {
 function authorizeMailApp() {
   MailApp.sendEmail(Session.getActiveUser().getEmail() || Session.getEffectiveUser().getEmail(), "EGDA MailApp Authorization", "MailApp authorization test.");
   return true;
+}
+
+function installAsanaEmailTrigger() {
+  ScriptApp.getProjectTriggers()
+    .filter((trigger) => trigger.getHandlerFunction() === "processAsanaEmailQueue")
+    .forEach((trigger) => ScriptApp.deleteTrigger(trigger));
+
+  ScriptApp.newTrigger("processAsanaEmailQueue")
+    .timeBased()
+    .everyMinutes(5)
+    .create();
+
+  return true;
+}
+
+function processAsanaEmailQueue() {
+  const mailConfig = getAsanaMailConfig_();
+  const tasks = listAsanaSectionTasks_(mailConfig.sectionGid);
+  const result = {
+    scanned: tasks.length,
+    sent: 0,
+    skipped: 0,
+    errors: []
+  };
+
+  tasks.forEach((task) => {
+    try {
+      if (task.completed) {
+        result.skipped += 1;
+        return;
+      }
+
+      const emailJob = parseAsanaEmailTask_(task);
+      if (!emailJob) {
+        result.skipped += 1;
+        return;
+      }
+
+      MailApp.sendEmail({
+        to: emailJob.to,
+        cc: emailJob.cc || "",
+        subject: emailJob.subject,
+        body: emailJob.body,
+        name: mailConfig.senderName
+      });
+
+      commentOnAsanaTask_(
+        task.gid,
+        `[EGDA_MAIL_SENT] ${new Date().toISOString()} -> ${emailJob.to}${emailJob.cc ? ` / cc: ${emailJob.cc}` : ""}`
+      );
+
+      if (mailConfig.doneSectionGid) {
+        moveTaskToAsanaSection_(task.gid, mailConfig.doneSectionGid);
+      }
+
+      completeAsanaTask_(task.gid);
+      result.sent += 1;
+    } catch (error) {
+      result.errors.push({
+        taskGid: task.gid,
+        taskName: task.name,
+        error: error.message
+      });
+      try {
+        commentOnAsanaTask_(task.gid, `[EGDA_MAIL_ERROR] ${error.message}`);
+      } catch (commentError) {
+        result.errors.push({
+          taskGid: task.gid,
+          taskName: task.name,
+          error: `Failed to write error comment: ${commentError.message}`
+        });
+      }
+    }
+  });
+
+  return result;
 }
 
 function getOrCreateSheet_() {
@@ -314,6 +406,125 @@ function buildAsanaNotes_(fields, storedFiles, submissionId) {
   ].join("\n");
 }
 
+function parseAsanaEmailTask_(task) {
+  const notes = String(task.notes || "").replace(/\r\n/g, "\n").trim();
+  if (!notes) {
+    return null;
+  }
+
+  const lines = notes.split("\n");
+  const marker = String(lines.shift() || "").trim().toUpperCase();
+  if (!["EGDA_MAIL", "[EGDA_MAIL]", "EGDA-MAIL"].includes(marker)) {
+    return null;
+  }
+
+  const headers = {};
+  let bodyIndex = -1;
+  for (let index = 0; index < lines.length; index += 1) {
+    const line = lines[index];
+    if (/^BODY\s*:/i.test(line)) {
+      bodyIndex = index;
+      break;
+    }
+
+    const matched = line.match(/^([A-Z_]+)\s*:\s*(.*)$/i);
+    if (matched) {
+      headers[matched[1].toUpperCase()] = matched[2].trim();
+    }
+  }
+
+  if (bodyIndex === -1) {
+    throw new Error("Missing BODY: section.");
+  }
+
+  const bodyFirstLine = lines[bodyIndex].replace(/^BODY\s*:\s*/i, "");
+  const bodyLines = [bodyFirstLine].concat(lines.slice(bodyIndex + 1));
+  const body = bodyLines.join("\n").trim();
+  const to = normalizeEmail_(headers.TO || "");
+  const cc = String(headers.CC || "")
+    .split(",")
+    .map((email) => normalizeEmail_(email))
+    .filter(Boolean)
+    .join(",");
+  const subject = String(headers.SUBJECT || task.name || "").trim();
+
+  if (!to) {
+    throw new Error("Missing TO: recipient email.");
+  }
+
+  if (!subject) {
+    throw new Error("Missing SUBJECT: line.");
+  }
+
+  if (!body) {
+    throw new Error("Missing BODY content.");
+  }
+
+  return {
+    to: to,
+    cc: cc,
+    subject: subject,
+    body: body
+  };
+}
+
+function listAsanaSectionTasks_(sectionGid) {
+  const response = asanaRequest_("get", `/sections/${sectionGid}/tasks?opt_fields=gid,name,notes,completed,permalink_url`);
+  return response.data || [];
+}
+
+function commentOnAsanaTask_(taskGid, text) {
+  return asanaRequest_("post", `/tasks/${taskGid}/stories`, {
+    data: {
+      text: text
+    }
+  });
+}
+
+function moveTaskToAsanaSection_(taskGid, sectionGid) {
+  return asanaRequest_("post", `/sections/${sectionGid}/addTask`, {
+    data: {
+      task: taskGid
+    }
+  });
+}
+
+function completeAsanaTask_(taskGid) {
+  return asanaRequest_("put", `/tasks/${taskGid}`, {
+    data: {
+      completed: true
+    }
+  });
+}
+
+function asanaRequest_(method, path, payload) {
+  const asanaConfig = getAsanaConfig_();
+  if (!asanaConfig.personalAccessToken) {
+    throw new Error("Missing Asana personal access token.");
+  }
+
+  const options = {
+    method: method,
+    contentType: "application/json",
+    headers: {
+      Authorization: `Bearer ${asanaConfig.personalAccessToken}`
+    },
+    muteHttpExceptions: true
+  };
+
+  if (payload) {
+    options.payload = JSON.stringify(payload);
+  }
+
+  const response = UrlFetchApp.fetch(`https://app.asana.com/api/1.0${path}`, options);
+  const responseText = response.getContentText();
+  if (response.getResponseCode() < 200 || response.getResponseCode() >= 300) {
+    throw new Error(`Asana API error: ${response.getResponseCode()} ${responseText}`);
+  }
+
+  return parseJsonSafely_(responseText, {});
+}
+
 function getVerifiedGoogleEmail_(idToken) {
   if (!idToken) {
     throw new Error("Missing Google ID token.");
@@ -384,5 +595,16 @@ function getAsanaConfig_() {
     personalAccessToken: getOptionalSetting_("ASANA_PERSONAL_ACCESS_TOKEN", ""),
     projectGid: getOptionalSetting_("ASANA_PROJECT_GID", ""),
     sectionGid: getOptionalSetting_("ASANA_SECTION_GID", "")
+  };
+}
+
+function getAsanaMailConfig_() {
+  const asanaConfig = getAsanaConfig_();
+  return {
+    personalAccessToken: asanaConfig.personalAccessToken,
+    projectGid: asanaConfig.projectGid,
+    sectionGid: getRequiredSetting_("ASANA_MAIL_SECTION_GID"),
+    doneSectionGid: getOptionalSetting_("ASANA_MAIL_DONE_SECTION_GID", ""),
+    senderName: getOptionalSetting_("ASANA_MAIL_SENDER_NAME", "EGDA2026")
   };
 }

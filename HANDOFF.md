@@ -62,6 +62,7 @@ Storage:
 Notification:
 
 - Asana task creation from Apps Script
+- Asana email queue processing from Apps Script
 
 ## What The Frontend Currently Does
 
@@ -113,6 +114,8 @@ Utilities:
 
 - `setupScriptPropertiesTemplate()`
 - `authorizeMailApp()`
+- `installAsanaEmailTrigger()`
+- `processAsanaEmailQueue()`
 - `doGet()`
 - `doPost()`
 
@@ -131,6 +134,9 @@ Asana:
 - `ASANA_PERSONAL_ACCESS_TOKEN`
 - `ASANA_PROJECT_GID`
 - `ASANA_SECTION_GID`
+- `ASANA_MAIL_SECTION_GID`
+- `ASANA_MAIL_DONE_SECTION_GID`
+- `ASANA_MAIL_SENDER_NAME`
 
 Reference example:
 
@@ -217,6 +223,41 @@ Current rule:
 - frontend sends `assigneeGid`
 - GAS uses that value when creating the Asana task
 
+### 7. Asana outbound email queue
+
+There is now a second Asana automation path:
+
+- one specific Asana section acts as a mail queue
+- Apps Script scans that section
+- if a task description matches the fixed mail syntax, GAS sends the email
+- success moves the task to the done section and marks it completed
+
+Current fixed syntax inside Asana task notes:
+
+```txt
+EGDA_MAIL
+TO: participant@example.com
+CC: optional@example.com
+SUBJECT: EGDA2026 通知
+BODY:
+這裡開始是信件內文
+```
+
+Related GAS functions:
+
+- `processAsanaEmailQueue()`
+- `installAsanaEmailTrigger()`
+
+Manual test endpoint:
+
+- `GET ?action=processAsanaEmailQueue`
+
+Required properties for this flow:
+
+- `ASANA_MAIL_SECTION_GID`
+- `ASANA_MAIL_DONE_SECTION_GID`
+- `ASANA_MAIL_SENDER_NAME`
+
 ## Current UX Decisions
 
 Homepage:
@@ -284,6 +325,7 @@ Highest value next improvements:
 3. Add per-field file size / file type validation from EGDA rules instead of one global size.
 4. Improve visual polish of login and history flows.
 5. Add explicit success page after full submission, not just status text.
+6. Add template variables for Asana mail tasks so email bodies can reuse submission data.
 
 ## Git Workflow Expectation
 

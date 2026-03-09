@@ -159,10 +159,12 @@ function installAsanaEmailTrigger() {
 function processAsanaEmailQueue() {
   const mailConfig = getAsanaMailConfig_();
   const tasks = listAsanaSectionTasks_(mailConfig.sectionGid);
+  const now = new Date();
   const result = {
     scanned: tasks.length,
     sent: 0,
     skipped: 0,
+    deferred: 0,
     errors: []
   };
 
@@ -176,6 +178,11 @@ function processAsanaEmailQueue() {
       const emailJob = parseAsanaEmailTask_(task);
       if (!emailJob) {
         result.skipped += 1;
+        return;
+      }
+
+      if (emailJob.sendAt && emailJob.sendAt.getTime() > now.getTime()) {
+        result.deferred += 1;
         return;
       }
 
@@ -447,6 +454,7 @@ function parseAsanaEmailTask_(task) {
     .filter(Boolean)
     .join(",");
   const subject = String(headers.SUBJECT || task.name || "").trim();
+  const sendAt = resolveScheduledSendAt_(task, headers);
 
   if (!to) {
     throw new Error("Missing TO: recipient email.");
@@ -464,13 +472,57 @@ function parseAsanaEmailTask_(task) {
     to: to,
     cc: cc,
     subject: subject,
-    body: body
+    body: body,
+    sendAt: sendAt
   };
 }
 
 function listAsanaSectionTasks_(sectionGid) {
-  const response = asanaRequest_("get", `/sections/${sectionGid}/tasks?opt_fields=gid,name,notes,completed,permalink_url`);
+  const response = asanaRequest_("get", `/sections/${sectionGid}/tasks?opt_fields=gid,name,notes,completed,permalink_url,due_on,due_at`);
   return response.data || [];
+}
+
+function resolveScheduledSendAt_(task, headers) {
+  if (task.due_at) {
+    return new Date(task.due_at);
+  }
+
+  if (task.due_on) {
+    return parseLocalDateTime_(String(task.due_on).trim());
+  }
+
+  const textSchedule = headers.SEND_AT || headers.SCHEDULE_AT || headers.SEND_ON || "";
+  if (textSchedule) {
+    return parseLocalDateTime_(String(textSchedule).trim());
+  }
+
+  return null;
+}
+
+function parseLocalDateTime_(value) {
+  const normalized = String(value || "").trim();
+  if (!normalized) {
+    return null;
+  }
+
+  if (/^\d{4}-\d{2}-\d{2}T/.test(normalized)) {
+    const isoDate = new Date(normalized);
+    if (!isNaN(isoDate.getTime())) {
+      return isoDate;
+    }
+  }
+
+  const matched = normalized.match(/^(\d{4})[-/](\d{2})[-/](\d{2})(?:\s+(\d{2}):(\d{2}))?$/);
+  if (!matched) {
+    throw new Error("Invalid SEND_AT format. Use YYYY-MM-DD HH:mm.");
+  }
+
+  const year = Number(matched[1]);
+  const month = Number(matched[2]) - 1;
+  const day = Number(matched[3]);
+  const hour = matched[4] ? Number(matched[4]) : 0;
+  const minute = matched[5] ? Number(matched[5]) : 0;
+  return new Date(year, month, day, hour, minute, 0, 0);
 }
 
 function commentOnAsanaTask_(taskGid, text) {

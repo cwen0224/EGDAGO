@@ -238,10 +238,18 @@ Current fixed syntax inside Asana task notes:
 EGDA_MAIL
 TO: participant@example.com
 CC: optional@example.com
+SEND_AT: 2026-03-15 10:30
 SUBJECT: EGDA2026 通知
 BODY:
 這裡開始是信件內文
 ```
+
+Scheduling precedence:
+
+1. task `due_at`
+2. task `due_on`
+3. note header `SEND_AT:` or `SCHEDULE_AT:`
+4. immediate send
 
 Related GAS functions:
 

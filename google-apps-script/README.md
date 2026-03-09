@@ -56,6 +56,7 @@ Task 描述必須用固定格式：
 EGDA_MAIL
 TO: participant@example.com
 CC: backup@example.com
+SEND_AT: 2026-03-15 10:30
 SUBJECT: EGDA2026 報名提醒
 BODY:
 您好，
@@ -69,8 +70,15 @@ BODY:
 - 第一行必須是 `EGDA_MAIL`
 - `TO:` 必填
 - `CC:` 選填，可用逗號分隔多個 Email
+- `SEND_AT:` 選填，格式建議 `YYYY-MM-DD HH:mm`
 - `SUBJECT:` 若省略，會改用 task 標題
 - `BODY:` 之後的全部內容都會當成信件正文
+
+寄送時間判斷順序：
+
+1. 先看 Asana task 的截止日期 / 截止時間
+2. 若 task 沒設截止日期，再看 `SEND_AT:` 或 `SCHEDULE_AT:`
+3. 兩者都沒有就立即寄送
 
 執行方式：
 

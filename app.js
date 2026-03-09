@@ -18,6 +18,11 @@ const noticeOverlay = document.querySelector("#notice-overlay");
 const noticeTitle = document.querySelector("#notice-title");
 const noticeText = document.querySelector("#notice-text");
 const noticeCloseButton = document.querySelector("#notice-close");
+const emailLoginModal = document.querySelector("#email-login-modal");
+const emailModalLabel = document.querySelector("#email-modal-label");
+const emailModalTitle = document.querySelector("#email-modal-title");
+const openEmailLoginButton = document.querySelector("#open-email-login");
+const closeEmailLoginButton = document.querySelector("#close-email-login");
 const googleAccountEmailInput = document.querySelector("#google-account-email");
 const googleIdTokenInput = document.querySelector("#google-id-token");
 const versionBadge = document.querySelector("#version-badge");
@@ -175,6 +180,7 @@ const translations = {
     loadingText: "請稍候，這可能需要幾秒鐘。",
     noticeTitle: "已送出",
     noticeClose: "我知道了",
+    emailModalTitle: "輸入 Email 與驗證碼後登入",
     emailLoginLabel: "Email 驗證登入",
     emailCodeLabel: "6 位數驗證碼",
     emailLoginStatusSignedOut: "也可以用 Email 驗證碼登入後查看自己先前填寫的表單。",
@@ -306,6 +312,7 @@ const translations = {
     loadingText: "Please wait. This may take a few seconds.",
     noticeTitle: "Sent",
     noticeClose: "OK",
+    emailModalTitle: "Sign in with your email and verification code",
     emailLoginLabel: "Email Verification Login",
     emailCodeLabel: "6-digit Verification Code",
     emailLoginStatusSignedOut: "You can also sign in with an email verification code to review your previous forms.",
@@ -450,6 +457,24 @@ function hideNotice() {
   }
   noticeOverlay.classList.add("hidden");
   if (busyCounter === 0) {
+    document.body.classList.remove("is-busy");
+  }
+}
+
+function openEmailLoginModal() {
+  if (!emailLoginModal) {
+    return;
+  }
+  emailLoginModal.classList.remove("hidden");
+  document.body.classList.add("is-busy");
+}
+
+function closeEmailLoginModal() {
+  if (!emailLoginModal) {
+    return;
+  }
+  emailLoginModal.classList.add("hidden");
+  if (busyCounter === 0 && noticeOverlay?.classList.contains("hidden")) {
     document.body.classList.remove("is-busy");
   }
 }
@@ -739,6 +764,7 @@ async function verifyEmailVerificationCode() {
     }
     saveEmailLoginSession({ email: result.email, sessionToken: result.sessionToken });
     emailLoginCodeInput.value = "";
+    closeEmailLoginModal();
     setStatus(tMessage("emailLoginSuccess"), "success");
   } finally {
     setBusy(false);
@@ -759,6 +785,15 @@ function applyTranslations() {
   if (noticeTitle && noticeCloseButton) {
     noticeTitle.textContent = pack.noticeTitle;
     noticeCloseButton.textContent = pack.noticeClose;
+  }
+  if (openEmailLoginButton) {
+    openEmailLoginButton.textContent = pack.emailLoginLabel;
+  }
+  if (emailModalLabel) {
+    emailModalLabel.textContent = pack.emailLoginLabel;
+  }
+  if (emailModalTitle) {
+    emailModalTitle.textContent = pack.emailModalTitle;
   }
   ui.description.setAttribute("content", pack.description);
   languageToggleButton.textContent = pack.languageToggle;
@@ -1124,6 +1159,8 @@ clearEmailLoginButton.addEventListener("click", () => {
   setStatus(tMessage("emailLoginCleared"), "success");
 });
 noticeCloseButton.addEventListener("click", hideNotice);
+openEmailLoginButton.addEventListener("click", openEmailLoginModal);
+closeEmailLoginButton.addEventListener("click", closeEmailLoginModal);
 themeToggleButton.addEventListener("click", toggleTheme);
 languageToggleButton.addEventListener("click", toggleLanguage);
 googleLogoutButton.addEventListener("click", () => {

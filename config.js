@@ -1,6 +1,6 @@
 window.EGDA_CONFIG = {
-  appVersion: "v2026.03.09-1515",
-  submissionEndpoint: "https://script.google.com/macros/s/AKfycbzKumKGg6Z4Rh0BC-58asG3ASnuodPRcCPWQKeQcUwcgoTmveaZX3D7iE_tl65z28Gm/exec",
+  appVersion: "v2026.03.09-1540",
+  submissionEndpoint: "https://script.google.com/macros/s/AKfycbxyGr2QS48eOAaLfHT-tkHVUuqAWvr9VOA-XOKUdd3PMnZDeFpcN-4hw6Vl6Ctb4o_a/exec",
   requestMethod: "POST",
   draftStorageKey: "egda-registration-draft",
   maxFileSizeMb: 100,

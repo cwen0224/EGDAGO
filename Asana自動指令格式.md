@@ -22,7 +22,7 @@ EGDA2026 工作小組
 - 第一行必須是 `EGDA_MAIL`
 - `TO:` 必填，只能放主要收件者 Email
 - `CC:` 選填，多個 Email 用逗號分隔
-- `SEND_AT:` 選填，格式用 `YYYY-MM-DD HH:mm`
+- `SEND_AT:` 選填，格式可用 `YYYY-MM-DD HH:mm` 或 `YYYY-M-D HH:mm`
 - `SUBJECT:` 選填；若不填，會改用任務名稱
 - `BODY:` 之後的全部內容都會當成信件正文
 

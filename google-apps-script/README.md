@@ -70,7 +70,7 @@ BODY:
 - 第一行必須是 `EGDA_MAIL`
 - `TO:` 必填
 - `CC:` 選填，可用逗號分隔多個 Email
-- `SEND_AT:` 選填，格式建議 `YYYY-MM-DD HH:mm`
+- `SEND_AT:` 選填，格式可用 `YYYY-MM-DD HH:mm` 或 `YYYY-M-D HH:mm`
 - `SUBJECT:` 若省略，會改用 task 標題
 - `BODY:` 之後的全部內容都會當成信件正文
 

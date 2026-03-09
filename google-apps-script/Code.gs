@@ -500,21 +500,26 @@ function resolveScheduledSendAt_(task, headers) {
 }
 
 function parseLocalDateTime_(value) {
-  const normalized = String(value || "").trim();
+  const normalized = String(value || "")
+    .trim()
+    .replace(/[：]/g, ":")
+    .replace(/[／]/g, "/")
+    .replace(/[－–—]/g, "-")
+    .replace(/\s+/g, " ");
   if (!normalized) {
     return null;
   }
 
-  if (/^\d{4}-\d{2}-\d{2}T/.test(normalized)) {
+  if (/^\d{4}-\d{1,2}-\d{1,2}T/.test(normalized) || /^\d{4}\/\d{1,2}\/\d{1,2}T/.test(normalized)) {
     const isoDate = new Date(normalized);
     if (!isNaN(isoDate.getTime())) {
       return isoDate;
     }
   }
 
-  const matched = normalized.match(/^(\d{4})[-/](\d{2})[-/](\d{2})(?:\s+(\d{2}):(\d{2}))?$/);
+  const matched = normalized.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})(?:\s+(\d{1,2}):(\d{1,2}))?$/);
   if (!matched) {
-    throw new Error("Invalid SEND_AT format. Use YYYY-MM-DD HH:mm.");
+    throw new Error("Invalid SEND_AT format. Use YYYY-MM-DD HH:mm or YYYY-M-D HH:mm.");
   }
 
   const year = Number(matched[1]);

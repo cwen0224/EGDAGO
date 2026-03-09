@@ -122,6 +122,11 @@ function setupScriptPropertiesTemplate() {
   return properties.getProperties();
 }
 
+function authorizeMailApp() {
+  MailApp.sendEmail(Session.getActiveUser().getEmail() || Session.getEffectiveUser().getEmail(), "EGDA MailApp Authorization", "MailApp authorization test.");
+  return true;
+}
+
 function getOrCreateSheet_() {
   const spreadsheet = SpreadsheetApp.openById(getRequiredSetting_("TARGET_SPREADSHEET_ID"));
   const existing = spreadsheet.getSheetByName(LOG_SHEET_NAME);

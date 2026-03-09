@@ -189,7 +189,7 @@ function processAsanaEmailQueue() {
 
       commentOnAsanaTask_(
         task.gid,
-        `[EMAIL SCADULED] ${new Date().toISOString()} -> ${emailJob.to}`
+        `[EMAIL SCADULED] queue picked up at ${Utilities.formatDate(new Date(), Session.getScriptTimeZone(), "yyyy-MM-dd HH:mm:ss")} -> ${emailJob.to}`
       );
 
       MailApp.sendEmail({

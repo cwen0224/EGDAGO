@@ -261,7 +261,7 @@ Error handling rule:
 
 Send flow note:
 
-- when a scheduled mail becomes eligible in the 5-minute queue run, GAS now leaves an `EMAIL SCADULED` comment before sending the email
+- when a scheduled mail becomes eligible in the 5-minute queue run, GAS now leaves an `EMAIL SCADULED` comment with the queue pickup timestamp before sending the email
 
 Related GAS functions:
 

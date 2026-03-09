@@ -259,6 +259,10 @@ Error handling rule:
 
 - when Asana mail sending fails, GAS now adds `Sivan` as follower and leaves an `@Sivan` error comment on the task
 
+Send flow note:
+
+- when a scheduled mail becomes eligible in the 5-minute queue run, GAS now leaves an `EMAIL SCADULED` comment before sending the email
+
 Related GAS functions:
 
 - `processAsanaEmailQueue()`

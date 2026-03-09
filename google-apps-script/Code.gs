@@ -187,6 +187,11 @@ function processAsanaEmailQueue() {
         return;
       }
 
+      commentOnAsanaTask_(
+        task.gid,
+        `[EMAIL SCADULED] ${new Date().toISOString()} -> ${emailJob.to}`
+      );
+
       MailApp.sendEmail({
         to: emailJob.to,
         cc: emailJob.cc || "",

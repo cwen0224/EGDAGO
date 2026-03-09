@@ -11,6 +11,9 @@ const languageToggleButton = document.querySelector("#language-toggle");
 const googleLoginButton = document.querySelector("#google-login-button");
 const heroGoogleLoginButton = document.querySelector("#hero-google-login-button");
 const googleLogoutButton = document.querySelector("#google-logout");
+const loadingOverlay = document.querySelector("#loading-overlay");
+const loadingTitle = document.querySelector("#loading-title");
+const loadingText = document.querySelector("#loading-text");
 const googleAccountEmailInput = document.querySelector("#google-account-email");
 const googleIdTokenInput = document.querySelector("#google-id-token");
 const versionBadge = document.querySelector("#version-badge");
@@ -39,6 +42,7 @@ const emailSessionKey = "egda-email-login-session";
 let submissionHistory = [];
 let emailLoginSession = null;
 let currentLanguage = "zh";
+let busyCounter = 0;
 
 const labels = {
   teamName: pickLabel("input[name='teamName']"),
@@ -162,6 +166,8 @@ const translations = {
     historyLoadIntoForm: "載入到表單",
     historyEmpty: "目前沒有找到你先前提交的表單。",
     historyFiles: "附件",
+    loadingTitle: "系統處理中",
+    loadingText: "請稍候，這可能需要幾秒鐘。",
     emailLoginLabel: "Email 驗證登入",
     emailCodeLabel: "6 位數驗證碼",
     emailLoginStatusSignedOut: "也可以用 Email 驗證碼登入後查看自己先前填寫的表單。",
@@ -225,16 +231,20 @@ const translations = {
       draftSaved: "草稿已儲存在這台裝置。", draftRestored: "已載入先前草稿。", formUpdated: "表單已更新，尚未送出。",
       previewOnly: "目前尚未開放送出，請稍後再試或聯絡主辦單位。", success: "報名資料已成功送出。",
       fileTooLarge: "檔案 {name} 超過 {size}MB 上限。", uploadConverting: "正在轉換檔案並上傳至 Google Drive...",
+      uploadConvertingHint: "檔案上傳中，請不要關閉頁面或重複送出。",
       uploadFailed: "送出時發生錯誤。",
       historyLoading: "正在載入你先前提交的資料...",
+      historyLoadingHint: "系統正在整理你的送件紀錄。",
       historyLoaded: "已載入你的送件紀錄。",
       historyRestored: "已將先前送件內容載回表單。",
       historyLoginRequired: "請先完成 Google 或 Email 驗證登入後再查看送件紀錄。",
       historyLoadFailed: "無法載入先前送件資料。",
       emailCodeSending: "正在寄送驗證碼...",
+      emailCodeSendingHint: "系統正在寄送驗證碼，請稍候，不要重複點擊。",
       emailCodeSent: "驗證碼已寄出，請到信箱查看。",
       emailCodeSendFailed: "無法寄送驗證碼。",
       emailCodeVerifying: "正在驗證 Email 驗證碼...",
+      emailCodeVerifyingHint: "系統正在驗證你輸入的驗證碼。",
       emailLoginSuccess: "Email 驗證成功，現在可以查看自己的送件紀錄。",
       emailLoginFailed: "Email 驗證失敗。",
       emailLoginCleared: "已清除 Email 驗證登入。",
@@ -284,6 +294,8 @@ const translations = {
     historyLoadIntoForm: "Load Into Form",
     historyEmpty: "No previous submissions were found for this account.",
     historyFiles: "Files",
+    loadingTitle: "Processing",
+    loadingText: "Please wait. This may take a few seconds.",
     emailLoginLabel: "Email Verification Login",
     emailCodeLabel: "6-digit Verification Code",
     emailLoginStatusSignedOut: "You can also sign in with an email verification code to review your previous forms.",
@@ -347,16 +359,20 @@ const translations = {
       draftSaved: "Draft saved on this device.", draftRestored: "Previous draft restored.", formUpdated: "Form updated and not submitted yet.",
       previewOnly: "Submission is not available right now. Please try again later or contact the organizer.", success: "Registration submitted successfully.",
       fileTooLarge: "File {name} exceeds the {size}MB limit.", uploadConverting: "Converting files and uploading to Google Drive...",
+      uploadConvertingHint: "Files are uploading. Please do not close the page or submit again.",
       uploadFailed: "An error occurred while submitting.",
       historyLoading: "Loading your previous submissions...",
+      historyLoadingHint: "Your submission history is being prepared.",
       historyLoaded: "Your submission history has been loaded.",
       historyRestored: "The selected submission has been restored into the form.",
       historyLoginRequired: "Please sign in with Google or email verification before viewing your submission history.",
       historyLoadFailed: "Failed to load previous submissions.",
       emailCodeSending: "Sending verification code...",
+      emailCodeSendingHint: "Your verification code is being sent. Please wait and avoid clicking again.",
       emailCodeSent: "Verification code sent. Please check your inbox.",
       emailCodeSendFailed: "Failed to send verification code.",
       emailCodeVerifying: "Verifying your email code...",
+      emailCodeVerifyingHint: "Your verification code is being checked.",
       emailLoginSuccess: "Email verification succeeded. You can now view your submission history.",
       emailLoginFailed: "Email verification failed.",
       emailLoginCleared: "Email verification login cleared.",
@@ -388,6 +404,22 @@ function setStatus(message, state = "") {
     statusMessage.dataset.state = state;
   } else {
     delete statusMessage.dataset.state;
+  }
+}
+
+function setBusy(isBusy, message = "", detail = "") {
+  if (!loadingOverlay || !loadingTitle || !loadingText) {
+    return;
+  }
+
+  busyCounter = isBusy ? busyCounter + 1 : Math.max(0, busyCounter - 1);
+  const shouldShow = busyCounter > 0;
+  loadingOverlay.classList.toggle("hidden", !shouldShow);
+  document.body.classList.toggle("is-busy", shouldShow);
+
+  if (shouldShow) {
+    loadingTitle.textContent = message || currentPack().loadingTitle;
+    loadingText.textContent = detail || currentPack().loadingText;
   }
 }
 
@@ -607,20 +639,25 @@ async function loadSubmissionHistory() {
   }
 
   setStatus(tMessage("historyLoading"));
-  const endpoint = new URL(config.submissionEndpoint);
-  endpoint.searchParams.set("action", "listSubmissions");
-  if (googleIdTokenInput.value) {
-    endpoint.searchParams.set("idToken", googleIdTokenInput.value);
-  } else if (emailLoginSession?.sessionToken) {
-    endpoint.searchParams.set("sessionToken", emailLoginSession.sessionToken);
-  }
-  const result = await fetchJsonResponse(await fetch(endpoint.toString()));
-  if (result.ok === false) {
-    throw new Error(result.error || tMessage("historyLoadFailed"));
-  }
+  setBusy(true, tMessage("historyLoading"), tMessage("historyLoadingHint"));
+  try {
+    const endpoint = new URL(config.submissionEndpoint);
+    endpoint.searchParams.set("action", "listSubmissions");
+    if (googleIdTokenInput.value) {
+      endpoint.searchParams.set("idToken", googleIdTokenInput.value);
+    } else if (emailLoginSession?.sessionToken) {
+      endpoint.searchParams.set("sessionToken", emailLoginSession.sessionToken);
+    }
+    const result = await fetchJsonResponse(await fetch(endpoint.toString()));
+    if (result.ok === false) {
+      throw new Error(result.error || tMessage("historyLoadFailed"));
+    }
 
-  renderSubmissionHistory(result.submissions || []);
-  setStatus(tMessage("historyLoaded"), "success");
+    renderSubmissionHistory(result.submissions || []);
+    setStatus(tMessage("historyLoaded"), "success");
+  } finally {
+    setBusy(false);
+  }
 }
 
 async function postAction(payload) {
@@ -640,11 +677,16 @@ async function requestEmailVerificationCode() {
     throw new Error(tMessage("emailRequired"));
   }
   setStatus(tMessage("emailCodeSending"));
-  const result = await postAction({ action: "requestEmailLoginCode", email });
-  if (result.ok === false) {
-    throw new Error(result.error || tMessage("emailCodeSendFailed"));
+  setBusy(true, tMessage("emailCodeSending"), tMessage("emailCodeSendingHint"));
+  try {
+    const result = await postAction({ action: "requestEmailLoginCode", email });
+    if (result.ok === false) {
+      throw new Error(result.error || tMessage("emailCodeSendFailed"));
+    }
+    setStatus(tMessage("emailCodeSent"), "success");
+  } finally {
+    setBusy(false);
   }
-  setStatus(tMessage("emailCodeSent"), "success");
 }
 
 async function verifyEmailVerificationCode() {
@@ -657,13 +699,18 @@ async function verifyEmailVerificationCode() {
     throw new Error(tMessage("emailCodeRequired"));
   }
   setStatus(tMessage("emailCodeVerifying"));
-  const result = await postAction({ action: "verifyEmailLoginCode", email, code });
-  if (result.ok === false) {
-    throw new Error(result.error || tMessage("emailLoginFailed"));
+  setBusy(true, tMessage("emailCodeVerifying"), tMessage("emailCodeVerifyingHint"));
+  try {
+    const result = await postAction({ action: "verifyEmailLoginCode", email, code });
+    if (result.ok === false) {
+      throw new Error(result.error || tMessage("emailLoginFailed"));
+    }
+    saveEmailLoginSession({ email: result.email, sessionToken: result.sessionToken });
+    emailLoginCodeInput.value = "";
+    setStatus(tMessage("emailLoginSuccess"), "success");
+  } finally {
+    setBusy(false);
   }
-  saveEmailLoginSession({ email: result.email, sessionToken: result.sessionToken });
-  emailLoginCodeInput.value = "";
-  setStatus(tMessage("emailLoginSuccess"), "success");
 }
 
 function applyTranslations() {
@@ -672,6 +719,10 @@ function applyTranslations() {
   document.title = pack.title;
   if (versionBadge) {
     versionBadge.textContent = config.appVersion || "v2026.03.06";
+  }
+  if (loadingTitle && loadingText) {
+    loadingTitle.textContent = pack.loadingTitle;
+    loadingText.textContent = pack.loadingText;
   }
   ui.description.setAttribute("content", pack.description);
   languageToggleButton.textContent = pack.languageToggle;
@@ -1062,6 +1113,7 @@ form.addEventListener("submit", async (event) => {
       return;
     }
     setStatus(tMessage("uploadConverting"));
+    setBusy(true, tMessage("uploadConverting"), tMessage("uploadConvertingHint"));
     const result = await submitToEndpoint(form);
     if (result && result.ok === false) {
       throw new Error(result.error || tMessage("uploadFailed"));
@@ -1073,6 +1125,8 @@ form.addEventListener("submit", async (event) => {
   } catch (error) {
     console.error(error);
     setStatus(error.message || tMessage("uploadFailed"), "error");
+  } finally {
+    setBusy(false);
   }
 });
 

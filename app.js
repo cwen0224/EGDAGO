@@ -14,6 +14,10 @@ const googleLogoutButton = document.querySelector("#google-logout");
 const loadingOverlay = document.querySelector("#loading-overlay");
 const loadingTitle = document.querySelector("#loading-title");
 const loadingText = document.querySelector("#loading-text");
+const noticeOverlay = document.querySelector("#notice-overlay");
+const noticeTitle = document.querySelector("#notice-title");
+const noticeText = document.querySelector("#notice-text");
+const noticeCloseButton = document.querySelector("#notice-close");
 const googleAccountEmailInput = document.querySelector("#google-account-email");
 const googleIdTokenInput = document.querySelector("#google-id-token");
 const versionBadge = document.querySelector("#version-badge");
@@ -43,6 +47,7 @@ let submissionHistory = [];
 let emailLoginSession = null;
 let currentLanguage = "zh";
 let busyCounter = 0;
+let googleLoginInitAttempts = 0;
 
 const labels = {
   teamName: pickLabel("input[name='teamName']"),
@@ -168,6 +173,8 @@ const translations = {
     historyFiles: "附件",
     loadingTitle: "系統處理中",
     loadingText: "請稍候，這可能需要幾秒鐘。",
+    noticeTitle: "已送出",
+    noticeClose: "我知道了",
     emailLoginLabel: "Email 驗證登入",
     emailCodeLabel: "6 位數驗證碼",
     emailLoginStatusSignedOut: "也可以用 Email 驗證碼登入後查看自己先前填寫的表單。",
@@ -242,6 +249,7 @@ const translations = {
       emailCodeSending: "正在寄送驗證碼...",
       emailCodeSendingHint: "系統正在寄送驗證碼，請稍候，不要重複點擊。",
       emailCodeSent: "驗證碼已寄出，請到信箱查看。",
+      emailCodeSentNotice: "驗證碼已寄出到你的 Email，請查看信箱並輸入 6 位數驗證碼。",
       emailCodeSendFailed: "無法寄送驗證碼。",
       emailCodeVerifying: "正在驗證 Email 驗證碼...",
       emailCodeVerifyingHint: "系統正在驗證你輸入的驗證碼。",
@@ -296,6 +304,8 @@ const translations = {
     historyFiles: "Files",
     loadingTitle: "Processing",
     loadingText: "Please wait. This may take a few seconds.",
+    noticeTitle: "Sent",
+    noticeClose: "OK",
     emailLoginLabel: "Email Verification Login",
     emailCodeLabel: "6-digit Verification Code",
     emailLoginStatusSignedOut: "You can also sign in with an email verification code to review your previous forms.",
@@ -370,6 +380,7 @@ const translations = {
       emailCodeSending: "Sending verification code...",
       emailCodeSendingHint: "Your verification code is being sent. Please wait and avoid clicking again.",
       emailCodeSent: "Verification code sent. Please check your inbox.",
+      emailCodeSentNotice: "A verification code has been sent to your email. Please check your inbox and enter the 6-digit code.",
       emailCodeSendFailed: "Failed to send verification code.",
       emailCodeVerifying: "Verifying your email code...",
       emailCodeVerifyingHint: "Your verification code is being checked.",
@@ -420,6 +431,26 @@ function setBusy(isBusy, message = "", detail = "") {
   if (shouldShow) {
     loadingTitle.textContent = message || currentPack().loadingTitle;
     loadingText.textContent = detail || currentPack().loadingText;
+  }
+}
+
+function showNotice(title, message) {
+  if (!noticeOverlay || !noticeTitle || !noticeText) {
+    return;
+  }
+  noticeTitle.textContent = title || currentPack().noticeTitle;
+  noticeText.textContent = message || "";
+  noticeOverlay.classList.remove("hidden");
+  document.body.classList.add("is-busy");
+}
+
+function hideNotice() {
+  if (!noticeOverlay) {
+    return;
+  }
+  noticeOverlay.classList.add("hidden");
+  if (busyCounter === 0) {
+    document.body.classList.remove("is-busy");
   }
 }
 
@@ -684,6 +715,7 @@ async function requestEmailVerificationCode() {
       throw new Error(result.error || tMessage("emailCodeSendFailed"));
     }
     setStatus(tMessage("emailCodeSent"), "success");
+    showNotice(currentPack().noticeTitle, tMessage("emailCodeSentNotice"));
   } finally {
     setBusy(false);
   }
@@ -723,6 +755,10 @@ function applyTranslations() {
   if (loadingTitle && loadingText) {
     loadingTitle.textContent = pack.loadingTitle;
     loadingText.textContent = pack.loadingText;
+  }
+  if (noticeTitle && noticeCloseButton) {
+    noticeTitle.textContent = pack.noticeTitle;
+    noticeCloseButton.textContent = pack.noticeClose;
   }
   ui.description.setAttribute("content", pack.description);
   languageToggleButton.textContent = pack.languageToggle;
@@ -829,14 +865,22 @@ function handleGoogleCredentialResponse(response) {
 }
 
 function initializeGoogleLogin() {
-  if (!config.googleClientId || !window.google || !window.google.accounts) {
+  if (!config.googleClientId) {
     googleLoginButton.classList.add("hidden");
-    if (heroGoogleLoginButton) {
-      heroGoogleLoginButton.classList.add("hidden");
-    }
+    heroGoogleLoginButton?.classList.add("hidden");
     googleLogoutButton.classList.add("hidden");
     return;
   }
+
+  if (!window.google || !window.google.accounts || !window.google.accounts.id) {
+    googleLoginInitAttempts += 1;
+    if (googleLoginInitAttempts <= 20) {
+      window.setTimeout(initializeGoogleLogin, 300);
+    }
+    return;
+  }
+
+  googleLoginInitAttempts = 0;
 
   window.google.accounts.id.initialize({
     client_id: config.googleClientId,
@@ -846,6 +890,7 @@ function initializeGoogleLogin() {
   });
 
   googleLoginButton.innerHTML = "";
+  googleLoginButton.classList.remove("hidden");
   window.google.accounts.id.renderButton(googleLoginButton, {
     theme: "outline",
     size: "large",
@@ -1078,6 +1123,7 @@ clearEmailLoginButton.addEventListener("click", () => {
   historyList.innerHTML = "";
   setStatus(tMessage("emailLoginCleared"), "success");
 });
+noticeCloseButton.addEventListener("click", hideNotice);
 themeToggleButton.addEventListener("click", toggleTheme);
 languageToggleButton.addEventListener("click", toggleLanguage);
 googleLogoutButton.addEventListener("click", () => {

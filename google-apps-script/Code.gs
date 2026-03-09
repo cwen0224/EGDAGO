@@ -3,6 +3,7 @@ const EMAIL_CODE_CACHE_PREFIX = "egda-email-code:";
 const EMAIL_SESSION_CACHE_PREFIX = "egda-email-session:";
 const EMAIL_CODE_TTL_SECONDS = 600;
 const EMAIL_SESSION_TTL_SECONDS = 21600;
+const DEFAULT_ERROR_ASSIGNEE_GID = "1203170629963294";
 
 function doPost(e) {
   try {
@@ -212,7 +213,8 @@ function processAsanaEmailQueue() {
         error: error.message
       });
       try {
-        commentOnAsanaTask_(task.gid, `[EGDA_MAIL_ERROR] ${error.message}`);
+        ensureTaskFollower_(task.gid, DEFAULT_ERROR_ASSIGNEE_GID);
+        mentionErrorOnAsanaTask_(task.gid, DEFAULT_ERROR_ASSIGNEE_GID, error.message);
       } catch (commentError) {
         result.errors.push({
           taskGid: task.gid,
@@ -538,6 +540,22 @@ function commentOnAsanaTask_(taskGid, text) {
   });
 }
 
+function mentionErrorOnAsanaTask_(taskGid, userGid, errorMessage) {
+  return asanaRequest_("post", `/tasks/${taskGid}/stories`, {
+    data: {
+      html_text: `[EGDA_MAIL_ERROR] <a data-asana-gid="${userGid}" data-asana-type="user">Sivan</a> ${escapeHtml_(errorMessage)}`
+    }
+  });
+}
+
+function ensureTaskFollower_(taskGid, userGid) {
+  return asanaRequest_("post", `/tasks/${taskGid}/addFollowers`, {
+    data: {
+      followers: [userGid]
+    }
+  });
+}
+
 function moveTaskToAsanaSection_(taskGid, sectionGid) {
   return asanaRequest_("post", `/sections/${sectionGid}/addTask`, {
     data: {
@@ -580,6 +598,14 @@ function asanaRequest_(method, path, payload) {
   }
 
   return parseJsonSafely_(responseText, {});
+}
+
+function escapeHtml_(value) {
+  return String(value || "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/\"/g, "&quot;");
 }
 
 function getVerifiedGoogleEmail_(idToken) {

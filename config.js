@@ -8,6 +8,8 @@ window.EGDA_CONFIG = {
   googleClientId: "114769317222-agrcn2apovvh3ubbu6fpelcq6imbv1hv.apps.googleusercontent.com",
   asanaAssigneeOptions: [
     { label: "不指定", gid: "" },
-    { label: "cwen0224@gmail.com", gid: "1203170629963294" }
+    { label: "Leo", gid: "1211416542965717" },
+    { label: "Sivan", gid: "1203170629963294" },
+    { label: "kk", gid: "1206033260955826" }
   ]
 };

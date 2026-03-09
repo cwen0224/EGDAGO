@@ -163,6 +163,10 @@ Known valid Asana user:
 Frontend assignee config:
 
 - [config.js](/c:/Users/Sang/Desktop/EGDA報名系統/config.js#L1)
+- current options:
+  - `Leo` = `1211416542965717`
+  - `Sivan` = `1203170629963294`
+  - `kk` = `1206033260955826`
 
 ## Important Implementation Notes
 
@@ -250,6 +254,10 @@ Scheduling precedence:
 2. task `due_on`
 3. note header `SEND_AT:` or `SCHEDULE_AT:`
 4. immediate send
+
+Error handling rule:
+
+- when Asana mail sending fails, GAS now adds `Sivan` as follower and leaves an `@Sivan` error comment on the task
 
 Related GAS functions:
 
